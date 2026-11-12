@@ -1,0 +1,115 @@
+# What each business word means here, written once (docs/design/semantic-layer.md §3).
+# A definition is the owner's to change: it is a business decision.
+#
+# names: the words in a question that mean this metric.  tables: what it needs.
+
+- metric: revenue
+  names: [revenue, sales, turnover, income, earnings]
+  unit: money
+  tables: [orders]
+  sql: SUM(orders.total_amount - orders.tax_amount)
+  where: orders.status = 'completed'
+  note: Sales means revenue unless the question says units or quantity.
+
+- metric: orders
+  names: [orders, bills, transactions, order count]
+  unit: number
+  tables: [orders]
+  sql: COUNT(*)
+  where: orders.status = 'completed'
+
+- metric: average_order_value
+  names: [average order value, aov, average bill, ticket size, basket size]
+  unit: money
+  tables: [orders]
+  sql: SUM(orders.total_amount - orders.tax_amount) / NULLIF(COUNT(*), 0)
+  where: orders.status = 'completed'
+
+- metric: units_sold
+  names: [units, units sold, quantity, quantity sold, selling, bestseller, bestsellers, sold]
+  unit: number
+  tables: [order_items, orders]
+  sql: SUM(order_items.quantity)
+  where: orders.status = 'completed'   # join order_items.order_id = orders.id
+  note: Top selling products are ranked by units sold.
+
+- metric: product_revenue
+  names: [product sales, product revenue, highest sales, sales by product, sales by category]
+  unit: money
+  tables: [order_items, orders]
+  sql: SUM(order_items.line_total)
+  where: orders.status = 'completed'   # join order_items.order_id = orders.id
+  note: Use this, not orders.total_amount, whenever revenue is split by product or category.
+
+- metric: gross_profit
+  names: [gross profit, margin, profit, profit by product]
+  unit: money
+  tables: [order_items, orders]
+  sql: SUM(order_items.line_total - order_items.quantity * order_items.unit_cost)
+  where: orders.status = 'completed'   # join order_items.order_id = orders.id
+
+- metric: expenses
+  names: [expenses, costs, spend, spending, overheads]
+  unit: money
+  tables: [expenses]
+  sql: SUM(expenses.amount)
+
+- metric: discount_rate
+  names: [discount rate, discounts]
+  unit: percent
+  tables: [orders]
+  sql: SUM(orders.discount_amount) / NULLIF(SUM(orders.subtotal), 0)
+  where: orders.status = 'completed'
+
+- metric: cancellation_rate
+  names: [cancellation rate, cancellations, cancelled, refunds, refunded]
+  unit: percent
+  tables: [orders]
+  sql: COUNT(*) FILTER (WHERE orders.status IN ('cancelled', 'refunded'))::numeric / NULLIF(COUNT(*), 0)
+
+- metric: new_customers
+  names: [new customers, customers joined, signups]
+  unit: number
+  tables: [customers]
+  sql: COUNT(*)
+  note: Count customers whose joined_on falls in the period.
+
+- metric: active_customers
+  names: [active customers, buying customers, customers who ordered]
+  unit: number
+  tables: [orders]
+  sql: COUNT(DISTINCT orders.customer_id)
+  where: orders.status = 'completed'
+
+- metric: visits
+  names: [visits, footfall]
+  unit: number
+  tables: [customer_visits]
+  sql: COUNT(*)
+
+- metric: visiting_customers
+  names: [customers visited, visitors, how many customers visited, unique visitors]
+  unit: number
+  tables: [customer_visits]
+  sql: COUNT(DISTINCT customer_visits.customer_id)
+  note: A question about how many customers visited counts distinct customers, not visits.
+
+- metric: stock_value
+  names: [stock value, inventory value]
+  unit: money
+  tables: [inventory_levels, products]
+  sql: SUM(inventory_levels.quantity_on_hand * products.cost_price)
+
+- metric: below_reorder
+  names: [below reorder, needs reordering, low stock, reorder, restock]
+  unit: list
+  tables: [inventory_levels, products, outlets]
+  sql: inventory_levels.quantity_on_hand <= inventory_levels.reorder_level
+  note: A condition, not a sum. List the product, the outlet, the stock and the reorder level.
+
+- metric: purchases
+  names: [purchases, purchase, purchased, procurement spend, purchase orders]
+  unit: money
+  tables: [purchase_orders]
+  sql: SUM(purchase_orders.total_amount)
+  where: purchase_orders.status = 'received'

@@ -1,0 +1,37 @@
+# The scripted document-retrieval set (docs/design/rag.md §6).
+#
+# What it checks: with the documents in rag_docs/ indexed, is the right document (and a
+# passage holding the phrase) among the passages retrieved for each question, and do
+# questions that no document answers retrieve nothing usable?
+#
+# IMPORTANT: tests run it with the word-based fake embedder, which matches on shared
+# words only. It measures our pipeline (chunking, storing, filtering, selecting), not
+# how well a real embedding model finds meaning. A real-model run needs approval.
+
+documents:
+  - {file: refund-policy.md, title: Refund and exchange policy}
+  - {file: operations-notes-october.md, title: "Operations notes, October 2026"}
+  - {file: staff-handbook.md, title: Staff handbook}
+
+answerable:
+  - {question: "Within how many days can a customer ask for a refund?", document: refund-policy.md, phrase: "within 14 days of purchase"}
+  - {question: "Can gift cards be refunded or exchanged for cash?", document: refund-policy.md, phrase: "cannot be refunded or exchanged for cash"}
+  - {question: "Can packaged coffee beans be exchanged?", document: refund-policy.md, phrase: "exchanged within 30 days"}
+  - {question: "Can prepared food and drinks be refunded once served?", document: refund-policy.md, phrase: "cannot be refunded once served"}
+  - {question: "When was the Indiranagar outlet closed for kitchen renovation?", document: operations-notes-october.md, phrase: "from 12 to 20 October"}
+  - {question: "At what time does every outlet close on weekdays?", document: operations-notes-october.md, phrase: "closes at 23"}
+  - {question: "On which days do deliveries of milk arrive from the dairy supplier?", document: operations-notes-october.md, phrase: "Monday, Wednesday and Friday"}
+  - {question: "Why was the espresso machine at the Whitefield outlet replaced?", document: operations-notes-october.md, phrase: "failed twice in September"}
+  - {question: "How many days of paid annual leave does a full-time employee have?", document: staff-handbook.md, phrase: "24 days of paid annual leave"}
+  - {question: "How much does a replacement apron cost?", document: staff-handbook.md, phrase: "350 rupees"}
+  - {question: "How is the till counted at the end of a shift?", document: staff-handbook.md, phrase: "by two people"}
+  - {question: "How many points give a free regular coffee in the loyalty programme?", document: staff-handbook.md, phrase: "Ten points give a free regular coffee"}
+
+# no document answers these; with the word-based embedder they share no content words
+# with any document
+unanswerable:
+  - "What is the parental bereavement entitlement?"
+  - "Which insurer covers earthquake damage?"
+  - "Who audits the quarterly taxation filings?"
+  - "What is the wifi password?"
+  - "Describe the franchise royalty percentage."

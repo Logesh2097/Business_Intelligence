@@ -1,0 +1,78 @@
+# Local development. The three stores start with:   docker compose up -d
+# The API in a container as well:                    docker compose --profile app up --build
+# Ports are in docs/design/architecture.md §4.
+# No password is written in this file. The three database passwords come from .env
+# (make setup creates it from .env.example); Compose stops with a message if one is missing.
+# MongoDB and Qdrant run without a password here and listen on this machine only.
+
+name: bi
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: bi_owner
+      POSTGRES_PASSWORD: ${BI_PG_OWNER_PASSWORD:?set BI_PG_OWNER_PASSWORD in .env}
+      POSTGRES_DB: bi
+      BI_PG_APP_PASSWORD: ${BI_PG_APP_PASSWORD:?set BI_PG_APP_PASSWORD in .env}
+      BI_PG_READONLY_PASSWORD: ${BI_PG_READONLY_PASSWORD:?set BI_PG_READONLY_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5610:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # creates bi_app and bi_readonly on the first start (docs/design/data-model.md §2)
+      - ./deploy/postgres/init-roles.sh:/docker-entrypoint-initdb.d/01-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bi_owner -d bi"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "127.0.0.1:27027:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.0
+    ports:
+      - "127.0.0.1:6343:6333"
+      - "127.0.0.1:6344:6334"
+    volumes:
+      - qdrantdata:/qdrant/storage
+    healthcheck:
+      # the image has no curl; open the port with bash instead
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333'"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      BI_ENV: dev
+      BI_PG_DSN: postgresql://bi_app:${BI_PG_APP_PASSWORD}@postgres:5432/bi
+      BI_PG_READONLY_DSN: postgresql://bi_readonly:${BI_PG_READONLY_PASSWORD}@postgres:5432/bi
+      BI_MONGO_URL: mongodb://mongo:27017
+      BI_QDRANT_URL: http://qdrant:6333
+    ports:
+      - "8110:8110"
+    depends_on:
+      postgres: { condition: service_healthy }
+      mongo: { condition: service_healthy }
+      qdrant: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  mongodata:
+  qdrantdata:

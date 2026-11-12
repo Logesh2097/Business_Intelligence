@@ -1,0 +1,60 @@
+[project]
+name = "bi-assistant"
+version = "0.1.0"
+description = "Multi-tenant business intelligence assistant: API, agents and tools"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "psycopg[binary,pool]>=3.2",
+    "pymongo>=4.9",
+    "httpx>=0.27",
+    "pyyaml>=6",
+    "sqlglot>=25",
+    "langchain-openai>=0.3",
+    "langgraph>=1.0",
+    "pypdf>=5",
+    "mcp>=2,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = []
+# tests/unit needs nothing running; tests/integration talks to real servers
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
+ignore = ["S101"]  # assert is how pytest works
+
+[tool.ruff.lint.per-file-ignores]
+# fake secrets in tests; SQL built from a constant table name in the live tests
+"tests/*" = ["S105", "S106", "S608"]
+"app/seed/*" = ["S311"]  # demo data, not secrets: a seeded generator is the point
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+plugins = ["pydantic.mypy"]

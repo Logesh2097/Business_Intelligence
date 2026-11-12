@@ -1,0 +1,233 @@
+# What the model may know about the database (docs/design/semantic-layer.md §2).
+#
+# Only columns the read-only database user may select are listed: private columns
+# (a customer's name, phone, email; a supplier's contact) and tenant_id are absent.
+# A test compares this file with the database's own grants.
+#
+# unique: the table's unique keys, each a list of columns. No two rows of the table
+# share the same values in all the columns of one key. They are the database's own
+# PRIMARY KEY and UNIQUE constraints without tenant_id (row security already limits
+# every query to one company). The aggregation check (app/sqlguard/aggregation.py)
+# uses them to tell a join that repeats rows from one that cannot. A live test
+# compares them with the database's constraints.
+#
+# sales: the columns that are sales amounts or quantities, and the status that decides
+# whether a row counts. On orders: `status` names the status column and `normal` the
+# status ordinary sales figures count. On order_items: `via` is the column that points
+# at the order (`of`), whose status governs the line. The correctness check
+# (app/sqlguard/correctness.py) refuses a SUM or AVG of these columns that no status
+# condition actually limits.
+#
+# optional: columns that may be empty, with the sentence added to an answer's
+# assumptions when an inner join through the column leaves rows out. `other_side_note`
+# is used only when the column is also a unique key by itself (a one-to-one link): it
+# says which rows of the OTHER table are left out. A live test compares these marks
+# with the database's NOT NULL and UNIQUE constraints.
+#
+# keywords: the words in a question that point at this table (used to pick the
+# relevant tables, so the whole schema is not sent every time).
+
+- table: outlets
+  purpose: The company's branches (stores, cafés). One row per outlet.
+  unique: [[id], [code]]
+  keywords: [outlet, outlets, branch, branches, store, stores, shop, location, locations, city, region]
+  columns:
+    - {name: id, type: uuid, meaning: Outlet id}
+    - {name: name, type: text, meaning: Outlet name}
+    - {name: code, type: text, meaning: Short outlet code}
+    - {name: city, type: text, meaning: City of the outlet}
+    - {name: region, type: text, meaning: Region of the outlet}
+    - {name: opened_on, type: date, meaning: Date the outlet opened}
+    - {name: is_active, type: boolean, meaning: False for a closed outlet}
+
+- table: categories
+  purpose: Product categories.
+  unique: [[id], [name]]
+  keywords: [category, categories]
+  columns:
+    - {name: id, type: uuid, meaning: Category id}
+    - {name: name, type: text, meaning: Category name}
+
+- table: products
+  purpose: The items the company sells. One row per product.
+  unique: [[id], [sku]]
+  keywords: [product, products, item, items, sku, menu, price, prices, catalogue, catalog]
+  joins: [{column: category_id, to: categories.id}]
+  columns:
+    - {name: id, type: uuid, meaning: Product id}
+    - {name: category_id, type: uuid, meaning: The product's category}
+    - {name: sku, type: text, meaning: Stock keeping unit code}
+    - {name: name, type: text, meaning: Product name}
+    - {name: unit, type: text, meaning: Unit of sale}
+    - {name: unit_price, type: decimal, meaning: Current selling price}
+    - {name: cost_price, type: decimal, meaning: Current cost}
+    - {name: is_active, type: boolean, meaning: False for a discontinued product}
+    - {name: created_at, type: timestamptz, meaning: When the product was added}
+
+- table: orders
+  purpose: One row per customer order (a bill). The source of revenue and order counts.
+  unique: [[id], [order_no]]
+  sales: {columns: [total_amount, subtotal, tax_amount, discount_amount], status: status, normal: completed}
+  optional:
+    - {column: customer_id, note: Orders with no recorded customer are not included.}
+  date_column: order_date
+  keywords: [order, orders, bill, bills, sale, sales, revenue, turnover, income, transaction, transactions,
+             channel, delivery, takeaway, payment, discount, discounts, cancelled, refunded, refund, tax]
+  joins: [{column: outlet_id, to: outlets.id}, {column: customer_id, to: customers.id}]
+  columns:
+    - {name: id, type: uuid, meaning: Order id}
+    - {name: outlet_id, type: uuid, meaning: The outlet that took the order}
+    - {name: customer_id, type: uuid, meaning: The customer; empty for a walk-in}
+    - {name: order_no, type: text, meaning: Order number}
+    - {name: ordered_at, type: timestamptz, meaning: Date and time of the order}
+    - {name: order_date, type: date, meaning: Local calendar date of the order. Use this for periods}
+    - {name: channel, type: text, values: [dine_in, takeaway, delivery, online]}
+    - {name: status, type: text, values: [completed, cancelled, refunded], meaning: Only completed orders count as sales}
+    - {name: payment_method, type: text, values: [cash, card, upi, wallet]}
+    - {name: subtotal, type: decimal, meaning: Sum of the lines before discount and tax}
+    - {name: discount_amount, type: decimal, meaning: Discount on the order}
+    - {name: tax_amount, type: decimal, meaning: Tax on the order}
+    - {name: total_amount, type: decimal, meaning: What the customer paid, after discount, including tax}
+
+- table: order_items
+  purpose: The lines of an order, one row per product on a bill. The source of product sales, units and cost.
+  unique: [[id]]
+  sales: {columns: [line_total, quantity, discount_amount, unit_price, unit_cost], via: order_id, of: orders}
+  date_column: order_date
+  keywords: [product, products, item, items, selling, sold, units, quantity, bestseller, bestsellers,
+             cost, cogs, margin, profit]
+  joins: [{column: order_id, to: orders.id}, {column: product_id, to: products.id}, {column: outlet_id, to: outlets.id}]
+  columns:
+    - {name: id, type: uuid, meaning: Line id}
+    - {name: order_id, type: uuid, meaning: The order this line belongs to. Join to orders to filter on status}
+    - {name: outlet_id, type: uuid, meaning: The outlet (copied from the order)}
+    - {name: order_date, type: date, meaning: Local calendar date (copied from the order). Use this for periods}
+    - {name: product_id, type: uuid, meaning: The product sold}
+    - {name: quantity, type: decimal, meaning: Units sold}
+    - {name: unit_price, type: decimal, meaning: Price per unit at the time of sale}
+    - {name: unit_cost, type: decimal, meaning: Cost per unit at the time of sale}
+    - {name: discount_amount, type: decimal, meaning: Discount on this line}
+    - {name: line_total, type: decimal, meaning: Amount for this line}
+
+- table: customers
+  purpose: Known customers. Personal details are not available; customers can be counted and grouped.
+  unique: [[id]]
+  keywords: [customer, customers, client, clients, segment, segments, vip, corporate, joined, signup]
+  columns:
+    - {name: id, type: uuid, meaning: Customer id}
+    - {name: segment, type: text, values: [new, regular, vip, corporate]}
+    - {name: city, type: text, meaning: Customer's city}
+    - {name: joined_on, type: date, meaning: Date the customer was first recorded}
+
+- table: customer_visits
+  purpose: One row each time a known customer comes to an outlet, with or without a purchase.
+  unique: [[id], [order_id]]
+  optional:
+    - column: order_id
+      note: Customer visits with no order are not included.
+      other_side_note: Orders with no recorded customer visit are not included.
+  date_column: visit_date
+  keywords: [visit, visits, visited, visitor, visitors, footfall, returning, repeat, reservation, reservations]
+  joins: [{column: customer_id, to: customers.id}, {column: outlet_id, to: outlets.id}, {column: order_id, to: orders.id}]
+  columns:
+    - {name: id, type: uuid, meaning: Visit id}
+    - {name: outlet_id, type: uuid, meaning: The outlet visited}
+    - {name: customer_id, type: uuid, meaning: The customer who visited}
+    - {name: visit_date, type: date, meaning: Local calendar date of the visit. Use this for periods}
+    - {name: visited_at, type: timestamptz, meaning: Date and time of the visit}
+    - {name: source, type: text, values: [walk_in, reservation, online_order, delivery]}
+    - {name: party_size, type: int, meaning: Number of people; may be empty}
+    - {name: order_id, type: uuid, meaning: The order made on this visit; empty when nothing was bought}
+
+- table: suppliers
+  purpose: The companies goods are bought from. Contact details are not available.
+  unique: [[id]]
+  keywords: [supplier, suppliers, vendor, vendors]
+  columns:
+    - {name: id, type: uuid, meaning: Supplier id}
+    - {name: name, type: text, meaning: Supplier name}
+    - {name: city, type: text, meaning: Supplier's city}
+    - {name: is_active, type: boolean}
+
+- table: inventory_levels
+  purpose: The stock on hand now, one row per outlet and product.
+  unique: [[outlet_id, product_id]]
+  keywords: [stock, inventory, reorder, restock, shortage, on hand]
+  joins: [{column: outlet_id, to: outlets.id}, {column: product_id, to: products.id}]
+  columns:
+    - {name: outlet_id, type: uuid, meaning: The outlet}
+    - {name: product_id, type: uuid, meaning: The product}
+    - {name: quantity_on_hand, type: decimal, meaning: Units in stock now}
+    - {name: reorder_level, type: decimal, meaning: Reorder when stock is at or below this}
+    - {name: updated_at, type: timestamptz, meaning: When the level was last updated}
+
+- table: stock_movements
+  purpose: The history of stock going in and out.
+  unique: [[id]]
+  date_column: movement_date
+  keywords: [wastage, waste, movement, movements, transfer, transfers, adjustment]
+  joins: [{column: outlet_id, to: outlets.id}, {column: product_id, to: products.id}]
+  columns:
+    - {name: id, type: uuid, meaning: Movement id}
+    - {name: outlet_id, type: uuid, meaning: The outlet}
+    - {name: product_id, type: uuid, meaning: The product}
+    - {name: movement_type, type: text, values: [purchase, sale, wastage, transfer_in, transfer_out, adjustment]}
+    - {name: quantity, type: decimal, meaning: Signed quantity. Stock coming in is positive}
+    - {name: unit_cost, type: decimal, meaning: Cost per unit}
+    - {name: movement_date, type: date, meaning: Local calendar date. Use this for periods}
+    - {name: moved_at, type: timestamptz}
+    - {name: note, type: text}
+
+- table: purchase_orders
+  purpose: Orders placed with suppliers.
+  unique: [[id], [po_no]]
+  date_column: ordered_on
+  keywords: [purchase, purchases, purchasing, procurement, po, bought]
+  joins: [{column: outlet_id, to: outlets.id}, {column: supplier_id, to: suppliers.id}]
+  columns:
+    - {name: id, type: uuid, meaning: Purchase order id}
+    - {name: outlet_id, type: uuid, meaning: The outlet that ordered}
+    - {name: supplier_id, type: uuid, meaning: The supplier}
+    - {name: po_no, type: text, meaning: Purchase order number}
+    - {name: status, type: text, values: [draft, ordered, received, cancelled]}
+    - {name: ordered_on, type: date, meaning: Date ordered. Use this for periods}
+    - {name: received_on, type: date, meaning: Date received; empty until then}
+    - {name: total_amount, type: decimal, meaning: Total of the purchase order}
+
+- table: purchase_order_items
+  purpose: The lines of a purchase order.
+  unique: [[id]]
+  keywords: []
+  joins: [{column: purchase_order_id, to: purchase_orders.id}, {column: product_id, to: products.id}]
+  columns:
+    - {name: id, type: uuid, meaning: Line id}
+    - {name: purchase_order_id, type: uuid, meaning: The purchase order}
+    - {name: product_id, type: uuid, meaning: The product bought}
+    - {name: quantity, type: decimal, meaning: Units bought}
+    - {name: unit_cost, type: decimal, meaning: Cost per unit}
+    - {name: line_total, type: decimal, meaning: Amount for this line}
+
+- table: expense_categories
+  purpose: Kinds of expense (rent, salaries, utilities, marketing, maintenance).
+  unique: [[id], [name]]
+  keywords: [rent, salary, salaries, utilities, marketing, maintenance, expense category, expenses by category]
+  columns:
+    - {name: id, type: uuid, meaning: Expense category id}
+    - {name: name, type: text, meaning: Category name}
+
+- table: expenses
+  purpose: Money spent on running an outlet. One row per expense.
+  unique: [[id]]
+  date_column: expense_date
+  keywords: [expense, expenses, cost, costs, spend, spending, overhead, overheads, rent, salaries,
+             profit, net]
+  joins: [{column: outlet_id, to: outlets.id}, {column: category_id, to: expense_categories.id}]
+  columns:
+    - {name: id, type: uuid, meaning: Expense id}
+    - {name: outlet_id, type: uuid, meaning: The outlet the expense belongs to}
+    - {name: category_id, type: uuid, meaning: The kind of expense}
+    - {name: expense_date, type: date, meaning: Date of the expense. Use this for periods}
+    - {name: amount, type: decimal, meaning: Amount spent}
+    - {name: vendor, type: text}
+    - {name: description, type: text}
+    - {name: payment_method, type: text}

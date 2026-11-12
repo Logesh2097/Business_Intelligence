@@ -1,0 +1,191 @@
+# The approved content of the evaluation database (bi_eval).
+# Written once, on 2026-11-11, after bi_eval, the generator's rows and the demo database
+# of that day were compared row for row and found identical. Every evaluation run
+# rebuilds bi_eval and stops if it differs from this file.
+# Do not edit a value here to make a run pass. If the generator must change, regenerate
+# this file deliberately (README.md) and re-verify every expected value in golden.yaml.
+
+inputs:
+  reference_date: '2026-11-11'
+  seed: 42
+  days: 120
+fingerprint: a66430bf11eb1f91e8df527f3fee82d749e519d7575e085272f81b0c779c0b43
+row_counts:
+- company: brewbite
+  tbl: categories
+  n: 6
+- company: brewbite
+  tbl: customer_visits
+  n: 4761
+- company: brewbite
+  tbl: customers
+  n: 300
+- company: brewbite
+  tbl: expense_categories
+  n: 5
+- company: brewbite
+  tbl: expenses
+  n: 125
+- company: brewbite
+  tbl: inventory_levels
+  n: 105
+- company: brewbite
+  tbl: order_items
+  n: 14266
+- company: brewbite
+  tbl: orders
+  n: 6931
+- company: brewbite
+  tbl: outlets
+  n: 5
+- company: brewbite
+  tbl: products
+  n: 21
+- company: brewbite
+  tbl: purchase_order_items
+  n: 100
+- company: brewbite
+  tbl: purchase_orders
+  n: 20
+- company: brewbite
+  tbl: stock_movements
+  n: 100
+- company: brewbite
+  tbl: suppliers
+  n: 4
+- company: brewbite
+  tbl: users
+  n: 3
+- company: urbanmart
+  tbl: categories
+  n: 6
+- company: urbanmart
+  tbl: customer_visits
+  n: 3632
+- company: urbanmart
+  tbl: customers
+  n: 300
+- company: urbanmart
+  tbl: expense_categories
+  n: 5
+- company: urbanmart
+  tbl: expenses
+  n: 100
+- company: urbanmart
+  tbl: inventory_levels
+  n: 84
+- company: urbanmart
+  tbl: order_items
+  n: 11052
+- company: urbanmart
+  tbl: orders
+  n: 5323
+- company: urbanmart
+  tbl: outlets
+  n: 4
+- company: urbanmart
+  tbl: products
+  n: 21
+- company: urbanmart
+  tbl: purchase_order_items
+  n: 80
+- company: urbanmart
+  tbl: purchase_orders
+  n: 16
+- company: urbanmart
+  tbl: stock_movements
+  n: 80
+- company: urbanmart
+  tbl: suppliers
+  n: 4
+- company: urbanmart
+  tbl: users
+  n: 2
+totals:
+- company: brewbite
+  revenue_all: 3556770.0
+  revenue_october: 902538.0
+  line_totals: 3894500.0
+  visits_october: 1247
+  expenses_all: 8385669.08
+  purchases_received: 264700.0
+  stock_units: 5037.0
+- company: urbanmart
+  revenue_all: 2782170.85
+  revenue_october: 715990.0
+  line_totals: 3013363.0
+  visits_october: 952
+  expenses_all: 6472841.1
+  purchases_received: 520640.0
+  stock_units: 4286.0
+outlets:
+- company: brewbite
+  outlet: Chennai Adyar
+- company: brewbite
+  outlet: Indiranagar
+- company: brewbite
+  outlet: Koramangala
+- company: brewbite
+  outlet: Mysuru Central
+- company: brewbite
+  outlet: Whitefield
+- company: urbanmart
+  outlet: Mumbai Andheri
+- company: urbanmart
+  outlet: Nashik Road
+- company: urbanmart
+  outlet: Pune Baner
+- company: urbanmart
+  outlet: Pune Kothrud
+users:
+- email: admin@brewbite.example
+  role: admin
+  all_outlets: true
+  company: brewbite
+  outlets: ''
+- email: admin@urbanmart.example
+  role: admin
+  all_outlets: true
+  company: urbanmart
+  outlets: ''
+- email: analyst@brewbite.example
+  role: analyst
+  all_outlets: true
+  company: brewbite
+  outlets: ''
+- email: root@bi.example
+  role: super_admin
+  all_outlets: true
+  company: ''
+  outlets: ''
+- email: viewer@brewbite.example
+  role: viewer
+  all_outlets: false
+  company: brewbite
+  outlets: Indiranagar, Koramangala
+- email: viewer@urbanmart.example
+  role: viewer
+  all_outlets: false
+  company: urbanmart
+  outlets: Nashik Road
+dates:
+- tbl: customer_visits
+  first: '2026-07-14'
+  last: '2026-11-10'
+- tbl: expenses
+  first: '2026-07-05'
+  last: '2026-11-05'
+- tbl: orders
+  first: '2026-07-14'
+  last: '2026-11-10'
+- tbl: purchase_orders
+  first: '2026-07-14'
+  last: '2026-10-16'
+- tbl: stock_movements
+  first: '2026-07-17'
+  last: '2026-10-19'
+broken_relationships:
+- orders_in_another_companys_outlet: 0
+  lines_not_matching_their_order: 0
+  visits_not_matching_their_order: 0
+  users_given_another_companys_outlet: 0

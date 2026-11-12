@@ -1,0 +1,724 @@
+/*
+ * The design tokens and the shared component rules.
+ *
+ * Ported from the Digitory Reservation portal (web/portal/src/assets/main.css and
+ * doc/design/design-sop.md there) so both products are one design system. What a
+ * component may use is a role, never a colour:
+ *
+ *   grounds   background (page) · surface (card, bar, rail, dialog) · wash (heads, active row, notice)
+ *   ink       --ink · --ink-2 (second line) · --ink-3 (present, not read)
+ *   lines     --hairline (card edge) · -strong (control outline) · -soft (rules in a table)
+ *   fills     --fill-1 (zebra) · --fill-2 (hover) · --fill-3 (pressed)
+ *   brand     primary = the one primary action, the focus ring, the tab indicator;
+ *             --text-brand = the brand as words
+ *   type      six sizes only: display 32 · title 24 · section 18 · body 15 · meta 13 · micro 11
+ *
+ * Flat unless it floats: cards, the bar and the rail cast no shadow; menus, dialogs and
+ * tooltips do, with one recipe (--overlay-shadow).
+ */
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/inter-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --font-body: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-heading: var(--font-body);
+
+  --mobile-nav-h: 64px;
+  --app-bar-h: 56px;
+
+  --space-05: 2px;
+  --space-1: 4px;
+  --space-15: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --text-display: 2rem;
+  --text-display-lh: 1.08;
+  --text-title: 1.5rem;
+  --text-title-lh: 1.2;
+  --text-section: 1.125rem;
+  --text-section-lh: 1.35;
+  --text-body: 0.9375rem;
+  --text-body-lh: 1.5;
+  --text-meta: 0.8125rem;
+  --text-meta-lh: 1.45;
+  --text-micro: 0.6875rem;
+  --text-micro-lh: 1.3;
+  --text-input: 1rem;
+
+  --ink: rgba(var(--v-theme-on-surface), 1);
+  --ink-2: rgba(var(--v-theme-on-surface), 0.62);
+  --ink-3: rgba(var(--v-theme-on-surface), 0.42);
+  --fill-1: rgba(var(--v-theme-fill-ink), 0.04);
+  --fill-2: rgba(var(--v-theme-fill-ink), 0.08);
+  --fill-3: rgba(var(--v-theme-fill-ink), 0.14);
+  --head-bg: rgb(var(--v-theme-head));
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --control-h: 44px;
+  --tile-h: 96px;
+  --card-pad: 16px;
+
+  --hairline: rgba(var(--v-theme-fill-ink), 0.1);
+  --hairline-strong: rgba(var(--v-theme-fill-ink), 0.22);
+  --hairline-soft: rgba(var(--v-theme-fill-ink), 0.06);
+  --hairline-faint: rgba(var(--v-theme-fill-ink), 0.035);
+
+  --panel-shadow: 0 8px 24px -8px rgba(16, 24, 40, 0.24);
+  --overlay-shadow: var(--panel-shadow);
+  --hover-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 20px -6px rgba(16, 24, 40, 0.14);
+  --press-shadow: 0 1px 2px rgba(16, 24, 40, 0.1);
+
+  --text-warning: #b45309;
+  --text-success: #047857;
+  --text-error: #b91c1c;
+  --text-info: #1d4ed8;
+  --text-brand: #01579b; /* set again from the theme in App.vue; this is the light value */
+
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.v-theme--appDark {
+  --hairline: rgba(var(--v-theme-fill-ink), 0.12);
+  --hairline-strong: rgba(var(--v-theme-fill-ink), 0.26);
+  --hairline-soft: rgba(var(--v-theme-fill-ink), 0.07);
+  --hairline-faint: rgba(var(--v-theme-fill-ink), 0.04);
+  --panel-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+  --overlay-shadow: var(--panel-shadow);
+  --hover-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 24px -8px rgba(0, 0, 0, 0.7);
+  --press-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --ink-2: rgba(var(--v-theme-on-surface), 0.68);
+  --ink-3: rgba(var(--v-theme-on-surface), 0.46);
+  --fill-1: rgba(var(--v-theme-fill-ink), 0.05);
+  --fill-2: rgba(var(--v-theme-fill-ink), 0.09);
+  --fill-3: rgba(var(--v-theme-fill-ink), 0.16);
+  --text-warning: rgb(var(--v-theme-warning));
+  --text-success: rgb(var(--v-theme-success));
+  --text-error: rgb(var(--v-theme-error));
+  --text-info: rgb(var(--v-theme-info));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+}
+
+/* -- type: one family, six sizes ------------------------------------------------------ */
+
+* {
+  font-family: var(--font-body) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* the icon font keeps its own family */
+.mdi,
+.mdi::before {
+  font-family: 'Material Design Icons' !important;
+}
+html {
+  overflow-y: auto !important;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  font-size: 16px;
+}
+h1,
+h2,
+h3,
+h4,
+.text-h4,
+.text-h5,
+.text-h6 {
+  font-family: var(--font-heading) !important;
+  letter-spacing: -0.01em !important;
+}
+.t-display {
+  font-size: var(--text-display);
+  line-height: var(--text-display-lh);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  font-variant-numeric: tabular-nums;
+}
+.t-title {
+  font-size: var(--text-title);
+  line-height: var(--text-title-lh);
+  font-weight: 700;
+  letter-spacing: -0.018em;
+}
+.t-section {
+  font-size: var(--text-section);
+  line-height: var(--text-section-lh);
+  font-weight: 600;
+  letter-spacing: -0.011em;
+}
+.t-body {
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
+  font-weight: 400;
+}
+.t-meta {
+  font-size: var(--text-meta);
+  line-height: var(--text-meta-lh);
+  font-weight: 500;
+}
+.t-micro {
+  font-size: var(--text-micro);
+  line-height: var(--text-micro-lh);
+  font-weight: 600;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+.ink {
+  color: var(--ink);
+}
+.ink-2 {
+  color: var(--ink-2);
+}
+.ink-3 {
+  color: var(--ink-3);
+}
+/* Vuetify's own type classes are put on the ladder, so its sizes do not leak in */
+.text-caption {
+  font-size: var(--text-meta) !important;
+  line-height: var(--text-meta-lh) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+}
+.text-body-1,
+.text-body-2 {
+  font-size: var(--text-body) !important;
+  line-height: var(--text-body-lh) !important;
+  letter-spacing: 0 !important;
+}
+.text-subtitle-2 {
+  font-size: var(--text-body) !important;
+  line-height: var(--text-body-lh) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+.text-subtitle-1,
+.text-h6 {
+  font-size: var(--text-section) !important;
+  line-height: var(--text-section-lh) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.011em !important;
+}
+.text-h5 {
+  font-size: var(--text-title) !important;
+  line-height: var(--text-title-lh) !important;
+  font-weight: 700 !important;
+}
+.text-h4 {
+  font-size: var(--text-display) !important;
+  line-height: var(--text-display-lh) !important;
+  font-weight: 700 !important;
+}
+.text-medium-emphasis {
+  color: var(--ink-2) !important;
+}
+.text-disabled {
+  color: var(--ink-3) !important;
+}
+.text-high-emphasis {
+  color: var(--ink) !important;
+}
+.text-warning {
+  color: var(--text-warning) !important;
+}
+.text-success {
+  color: var(--text-success) !important;
+}
+.text-error {
+  color: var(--text-error) !important;
+}
+.text-brand {
+  color: var(--text-brand) !important;
+}
+.v-messages__message {
+  font-size: var(--text-meta);
+  line-height: var(--text-meta-lh);
+}
+.v-card-title {
+  font-family: var(--font-heading) !important;
+  font-size: var(--text-section) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- radii: one ladder ---------------------------------------------------------------- */
+
+.v-btn.rounded-lg,
+.v-btn-group.rounded-lg,
+.v-field.rounded-lg,
+.v-chip.rounded-lg,
+.v-avatar.rounded-lg,
+.v-alert,
+.v-list-item,
+.v-list-item__overlay,
+.v-snackbar__wrapper {
+  border-radius: var(--radius-sm);
+}
+.v-card.rounded-lg,
+.v-sheet.rounded-lg,
+.v-card:not([class*='rounded']),
+.v-sheet:not([class*='rounded']) {
+  border-radius: var(--radius-md);
+}
+.app-overlay--dialog > .v-card,
+.app-overlay--dialog > .v-sheet {
+  border-radius: var(--radius-lg);
+}
+.app-overlay--menu > .v-card,
+.app-overlay--menu > .v-sheet,
+.app-overlay--menu > .v-list {
+  border-radius: var(--radius-md);
+}
+
+/* -- cards and heads ------------------------------------------------------------------ */
+
+/* A resting card: the card ground, a hairline, no shadow. */
+.v-card.v-card--variant-outlined,
+.v-card.v-card--border {
+  border: 1px solid var(--hairline);
+  background: rgb(var(--v-theme-surface));
+}
+/* One construction for the head of a card, a dialog and a table: the brand wash. */
+.head-fill {
+  background: var(--head-bg);
+  border-bottom: 1px solid var(--hairline);
+}
+.head-sub {
+  background: var(--fill-2);
+  border-bottom: 1px solid var(--hairline);
+}
+/* A card with a wash head draws its edge as a ring, so the head reaches the corners. */
+.v-card:has(> .head-fill) {
+  border-width: 0 !important;
+  box-shadow: 0 0 0 1px var(--hairline) !important;
+  overflow: hidden;
+}
+.v-overlay .v-card {
+  border: 1px solid var(--hairline) !important;
+  box-shadow: var(--overlay-shadow) !important;
+}
+.v-overlay .v-card:has(> .head-fill) {
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    var(--overlay-shadow) !important;
+}
+.inset-box {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: rgb(var(--v-theme-surface));
+}
+.code-block {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--fill-1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The accent bar at the start of a notice: the one place a bar is allowed. */
+:where(.edge) {
+  position: relative;
+}
+.edge::before {
+  content: '';
+  position: absolute;
+  inset-block: var(--edge-inset, 8px);
+  inset-inline-start: 0;
+  width: var(--edge-w, 3px);
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  background: var(--edge, transparent);
+  pointer-events: none;
+}
+
+/* A notice is a tonal wash with ink words; its colour is only in the bar and the icon. */
+.v-alert.v-alert--variant-tonal {
+  position: relative;
+  color: var(--ink) !important;
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
+}
+.v-alert.v-alert--variant-tonal .v-alert__underlay {
+  opacity: 0.12;
+}
+.v-alert.v-alert--variant-tonal::before {
+  content: '';
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  background: currentColor;
+}
+.v-alert.v-alert--variant-tonal.text-info::before {
+  background: rgb(var(--v-theme-primary));
+}
+.v-alert.v-alert--variant-tonal.text-info .v-alert__underlay {
+  background: rgb(var(--v-theme-primary));
+}
+.v-alert.v-alert--variant-tonal.text-info .v-alert__prepend {
+  color: var(--text-brand);
+}
+.v-alert.v-alert--variant-tonal.text-error::before,
+.v-alert.v-alert--variant-tonal.text-error .v-alert__prepend {
+  color: var(--text-error);
+  background-color: transparent;
+}
+.v-alert.v-alert--variant-tonal.text-error::before {
+  background: rgb(var(--v-theme-error));
+}
+.v-alert.v-alert--variant-tonal.text-warning::before {
+  background: rgb(var(--v-theme-warning));
+}
+.v-alert.v-alert--variant-tonal.text-warning .v-alert__prepend {
+  color: var(--text-warning);
+}
+.v-alert.v-alert--variant-tonal.text-success::before {
+  background: rgb(var(--v-theme-success));
+}
+.v-alert.v-alert--variant-tonal.text-success .v-alert__prepend {
+  color: var(--text-success);
+}
+
+/* -- tables --------------------------------------------------------------------------- */
+
+.v-table {
+  background: transparent;
+  font-size: var(--text-body);
+}
+.v-table > .v-table__wrapper > table > thead > tr > th {
+  background: var(--head-bg);
+  color: var(--ink);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 0 !important;
+  height: 40px;
+}
+.v-table > .v-table__wrapper > table > :is(thead, tbody) > tr > :is(th, td) {
+  padding-inline: 12px;
+}
+.v-table > .v-table__wrapper > table > tbody > tr > td {
+  border-bottom-color: var(--hairline-soft) !important;
+  font-variant-numeric: tabular-nums;
+}
+.v-table > .v-table__wrapper > table > tbody > tr:last-child > td {
+  border-bottom: 0 !important;
+}
+.v-table > .v-table__wrapper > table :is(th, td):not(:first-child) {
+  border-left: 1px solid var(--hairline-faint);
+}
+.v-table > .v-table__wrapper > table > tbody > tr:hover > td {
+  background: var(--fill-1);
+}
+/* a table standing by itself (not inside a card with a head) gets the card's edge */
+.v-table.table-card {
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px var(--hairline);
+  background: rgb(var(--v-theme-surface));
+  overflow: hidden;
+}
+
+/* -- buttons, chips, fields, tabs ----------------------------------------------------- */
+
+.v-btn {
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+.v-btn.v-btn--size-small {
+  height: 36px !important;
+  --v-btn-height: 36px;
+}
+.v-btn.v-btn--size-x-small {
+  height: 32px !important;
+  --v-btn-height: 32px;
+  font-size: var(--text-meta);
+}
+.v-btn--icon.v-btn--size-default,
+.v-btn--icon.v-btn--size-large {
+  width: var(--control-h) !important;
+  height: var(--control-h) !important;
+}
+.v-btn--icon.v-btn--size-small {
+  width: 36px !important;
+  height: 36px !important;
+}
+.v-btn--icon.v-btn--size-x-small {
+  width: 32px !important;
+  height: 32px !important;
+}
+.v-card-actions .v-btn:not(.v-btn--icon) {
+  padding-inline: var(--space-4);
+}
+/* a plain tonal button or chip is washed in the brand's grey, not a neutral one */
+.v-btn--variant-tonal:not([class*='text-']) .v-btn__underlay,
+.v-chip--variant-tonal:not([class*='text-']) .v-chip__underlay {
+  background: rgb(var(--v-theme-fill-ink));
+}
+.v-chip {
+  font-weight: 500;
+}
+.v-chip.v-chip--size-small {
+  font-size: var(--text-meta);
+}
+.v-chip.v-chip--size-x-small {
+  font-size: var(--text-micro);
+}
+/* a status chip: the hue at 14 % with words-grade text; the glyph carries the meaning too */
+.v-chip.status-chip.v-chip--variant-tonal .v-chip__underlay {
+  opacity: 0.14;
+}
+.v-chip.status-chip.text-success {
+  color: var(--text-success) !important;
+}
+.v-chip.status-chip.text-warning {
+  color: var(--text-warning) !important;
+}
+.v-chip.status-chip.text-error {
+  color: var(--text-error) !important;
+}
+.v-chip.status-chip.text-info {
+  color: var(--text-info) !important;
+}
+.v-chip.status-chip.text-primary {
+  color: var(--text-brand) !important;
+}
+
+.v-input--density-comfortable {
+  --v-input-control-height: var(--control-h);
+  --v-input-padding-top: 10px;
+}
+.v-field--variant-outlined .v-field__outline {
+  --v-field-border-opacity: 0.22;
+  color: rgb(var(--v-theme-fill-ink));
+}
+.v-field--variant-outlined.v-field--focused .v-field__outline {
+  color: rgb(var(--v-theme-primary));
+  --v-field-border-opacity: 1;
+}
+.v-field--variant-outlined.v-field--error .v-field__outline {
+  color: rgb(var(--v-theme-error));
+  --v-field-border-opacity: 1;
+}
+.v-field {
+  font-size: var(--text-body);
+  background: rgb(var(--v-theme-surface));
+}
+.v-field--variant-outlined.v-field--density-comfortable .v-label.v-field-label:not(.v-field-label--floating) {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.v-field .v-label {
+  color: var(--ink-2);
+  opacity: 1;
+}
+.field-label {
+  display: flex;
+  align-items: center;
+  font-size: var(--text-meta);
+  line-height: var(--text-meta-lh);
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-bottom: var(--space-15);
+}
+.filter-input {
+  width: clamp(150px, 16vw, 220px);
+}
+
+.v-tabs {
+  border-bottom: 1px solid var(--hairline);
+}
+.v-tab.v-btn {
+  height: var(--v-tabs-height) !important;
+  border-radius: 0 !important;
+  color: var(--ink-2);
+}
+.v-tab.v-btn.v-tab--selected {
+  color: var(--text-brand);
+  font-weight: 600;
+}
+.v-btn-toggle > .v-btn.v-btn--active {
+  color: var(--text-success);
+  font-weight: 600;
+}
+
+/* -- lists, menus, tooltips ----------------------------------------------------------- */
+
+.v-list {
+  background: transparent;
+}
+.app-overlay--menu > .v-list {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid var(--hairline);
+  box-shadow: var(--overlay-shadow);
+}
+.v-list-item-title {
+  font-size: var(--text-body);
+}
+.v-list-item-subtitle {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+  opacity: 1;
+}
+.v-tooltip-custom {
+  background: rgb(var(--v-theme-surface-variant)) !important;
+  color: rgb(var(--v-theme-on-surface-variant)) !important;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 6px 12px;
+  border-radius: var(--radius-xs);
+  box-shadow: var(--overlay-shadow);
+  opacity: 1 !important;
+}
+.v-skeleton-loader {
+  background: transparent;
+}
+.v-divider {
+  border-color: var(--hairline);
+  opacity: 1;
+}
+
+/* -- the page ------------------------------------------------------------------------- */
+
+.main-content {
+  padding: 16px 24px;
+  box-sizing: border-box;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+.main-content--narrow {
+  max-width: 1040px;
+}
+@media (max-width: 959.98px) {
+  .main-content {
+    padding: 12px 12px calc(var(--mobile-nav-h) + 16px + env(safe-area-inset-bottom));
+  }
+}
+/* a card that is a link lifts a little when pointed at */
+.main-content .v-card {
+  transition:
+    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.22s ease,
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.main-content .v-card--link > .v-card__overlay {
+  display: none;
+}
+.main-content .v-card--link:hover,
+.main-content .v-card--link:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(var(--v-theme-primary), 0.45);
+  box-shadow: var(--hover-shadow);
+}
+/* the first screen: a soft brand glow at the top of the page ground */
+.screen-backdrop {
+  min-height: calc(100dvh - var(--app-bar-h));
+  background:
+    radial-gradient(90% 55% at 50% 0%, rgba(var(--v-theme-primary), 0.16), transparent 70%),
+    rgb(var(--v-theme-background));
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.18);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-on-surface), 0.3);
+}
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+a,
+button,
+[role='button'],
+[role='tab'],
+input,
+select,
+textarea,
+.v-btn,
+.v-field {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Under a finger every control is 44 px and a field is 16 px (iOS zooms into less). */
+@media (pointer: coarse) {
+  :is(.v-application, .v-overlay-container) .v-btn {
+    min-height: var(--control-h);
+    min-width: var(--control-h);
+  }
+  :is(.v-application, .v-overlay-container) .v-tabs {
+    --v-tabs-height: var(--control-h);
+  }
+  :is(.v-application, .v-overlay-container) .v-field__input,
+  :is(.v-application, .v-overlay-container) .v-field input,
+  :is(.v-application, .v-overlay-container) .v-field textarea {
+    font-size: var(--text-input) !important;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

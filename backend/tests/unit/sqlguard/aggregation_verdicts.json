@@ -1,0 +1,1248 @@
+[
+ {
+  "name": "fan_out: an order's total added up across its lines",
+  "sql": "SELECT SUM(o.total_amount - o.tax_amount) AS revenue FROM orders o JOIN order_items oi ON oi.order_id = o.id WHERE o.status = 'completed'",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: the same, averaged",
+  "sql": "SELECT AVG(o.total_amount) AS aov FROM orders o JOIN order_items oi ON oi.order_id = o.id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "AVG(o.total_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: the same, counted by column",
+  "sql": "SELECT COUNT(o.id) AS orders FROM orders o JOIN order_items oi ON oi.order_id = o.id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "COUNT(o.id) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: the same, grouped by product",
+  "sql": "SELECT p.name AS product, ROUND(SUM(o.total_amount), 2) AS revenue FROM orders o JOIN order_items oi ON oi.order_id = o.id JOIN products p ON p.id = oi.product_id GROUP BY p.name",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to order_items, products in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: a purchase order's total added up across its lines",
+  "sql": "SELECT SUM(po.total_amount) AS purchases FROM purchase_orders po JOIN purchase_order_items i ON i.purchase_order_id = po.id WHERE po.status = 'received'",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(po.total_amount) adds up rows of purchase_orders that this query repeats: purchase_orders is joined to purchase_order_items in a way that can match several rows for one row of purchase_orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: orders joined to visits on the outlet",
+  "sql": "SELECT t.name AS outlet, SUM(o.total_amount - o.tax_amount) AS revenue, COUNT(DISTINCT v.customer_id) AS customers FROM orders o JOIN customer_visits v ON v.outlet_id = o.outlet_id JOIN outlets t ON t.id = o.outlet_id GROUP BY t.name",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to customer_visits in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: orders joined to visits on the customer",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o JOIN customer_visits v ON v.customer_id = o.customer_id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to customer_visits in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: expenses joined to orders on the outlet",
+  "sql": "SELECT SUM(e.amount) AS spent FROM expenses e JOIN orders o ON o.outlet_id = e.outlet_id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(e.amount) adds up rows of expenses that this query repeats: expenses is joined to orders in a way that can match several rows for one row of expenses, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: a customer with both orders and visits",
+  "sql": "SELECT c.segment, COUNT(v.id) AS visits, SUM(o.total_amount) AS revenue FROM customers c JOIN customer_visits v ON v.customer_id = c.id JOIN orders o ON o.customer_id = c.id GROUP BY c.segment",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "COUNT(v.id) adds up rows of customer_visits that this query repeats: customer_visits is joined to orders in a way that can match several rows for one row of customer_visits, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: stock joined to order lines on the product only",
+  "sql": "SELECT SUM(oi.line_total) AS revenue FROM order_items oi JOIN inventory_levels il ON il.product_id = oi.product_id WHERE il.quantity_on_hand <= il.reorder_level",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(oi.line_total) adds up rows of order_items that this query repeats: order_items is joined to inventory_levels in a way that can match several rows for one row of order_items, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: stock units added up across order lines",
+  "sql": "SELECT SUM(il.quantity_on_hand) AS units FROM inventory_levels il JOIN order_items oi ON oi.outlet_id = il.outlet_id AND oi.product_id = il.product_id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(il.quantity_on_hand) adds up rows of inventory_levels that this query repeats: inventory_levels is joined to order_items in a way that can match several rows for one row of inventory_levels, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: three detail tables through the outlet",
+  "sql": "SELECT t.name AS outlet, SUM(o.total_amount) AS revenue, SUM(e.amount) AS expenses, SUM(po.total_amount) AS purchases FROM outlets t LEFT JOIN orders o ON o.outlet_id = t.id LEFT JOIN expenses e ON e.outlet_id = t.id LEFT JOIN purchase_orders po ON po.outlet_id = t.id GROUP BY t.name",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to expenses, purchase_orders in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: an outlet attribute added up across its orders",
+  "sql": "SELECT SUM(il.reorder_level) AS level FROM outlets t JOIN inventory_levels il ON il.outlet_id = t.id JOIN stock_movements m ON m.outlet_id = t.id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(il.reorder_level) adds up rows of inventory_levels that this query repeats: inventory_levels is joined to stock_movements in a way that can match several rows for one row of inventory_levels, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: a join with no condition at all",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o CROSS JOIN order_items oi",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: the join written in WHERE",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o, order_items oi WHERE oi.order_id = o.id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: no aliases and unqualified columns",
+  "sql": "SELECT SUM(total_amount) AS revenue FROM orders JOIN order_items ON order_id = orders.id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(orders.total_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: inside a CTE",
+  "sql": "WITH r AS (SELECT o.outlet_id, SUM(o.total_amount) AS revenue FROM orders o JOIN order_items oi ON oi.order_id = o.id GROUP BY o.outlet_id) SELECT t.name AS outlet, r.revenue FROM outlets t JOIN r ON r.outlet_id = t.id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: inside a subquery in FROM",
+  "sql": "SELECT s.revenue FROM (SELECT SUM(o.total_amount) AS revenue FROM orders o JOIN customer_visits v ON v.outlet_id = o.outlet_id) AS s",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to customer_visits in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: in one arm of a UNION",
+  "sql": "SELECT SUM(e.amount) AS amount FROM expenses e UNION ALL SELECT SUM(o.total_amount) AS amount FROM orders o JOIN order_items oi ON oi.order_id = o.id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: with a FILTER clause",
+  "sql": "SELECT SUM(o.total_amount) FILTER (WHERE o.status = 'completed') AS revenue FROM orders o JOIN order_items oi ON oi.order_id = o.id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "fan_out: a self-join on a column that is not a key",
+  "sql": "SELECT SUM(a.total_amount) AS revenue FROM orders a JOIN orders b ON b.customer_id = a.customer_id",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(a.total_amount) adds up rows of orders that this query repeats: orders is joined to orders in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "sound: one table",
+  "sql": "SELECT ROUND(SUM(total_amount - tax_amount), 2) AS revenue FROM orders WHERE status = 'completed'",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: one table, grouped",
+  "sql": "SELECT order_date, COUNT(id) AS orders, AVG(total_amount) AS aov FROM orders GROUP BY order_date",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: lines added up, joined to their order",
+  "sql": "SELECT ROUND(SUM(oi.line_total), 2) AS revenue FROM orders o JOIN order_items oi ON oi.order_id = o.id WHERE o.status = 'completed'",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: lines joined to order, product, category and outlet",
+  "sql": "SELECT t.name AS outlet, c.name AS category, SUM(oi.quantity) AS units, ROUND(SUM(oi.line_total - oi.quantity * oi.unit_cost), 2) AS profit FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id JOIN outlets t ON t.id = oi.outlet_id WHERE o.status = 'completed' GROUP BY t.name, c.name",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: orders by outlet",
+  "sql": "SELECT t.name AS outlet, ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o JOIN outlets t ON t.id = o.outlet_id GROUP BY t.name",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: orders by customer segment",
+  "sql": "SELECT c.segment, SUM(o.total_amount - o.tax_amount) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id GROUP BY c.segment",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: orders joined to visits on the order id, one to one",
+  "sql": "SELECT v.source, SUM(o.total_amount) AS revenue, COUNT(v.id) AS visits FROM orders o LEFT JOIN customer_visits v ON v.order_id = o.id GROUP BY v.source",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: lines joined to stock on the whole key",
+  "sql": "SELECT ROUND(SUM(oi.line_total), 2) AS revenue FROM order_items AS oi JOIN orders AS o ON oi.order_id = o.id JOIN inventory_levels AS il ON oi.outlet_id = il.outlet_id AND oi.product_id = il.product_id WHERE o.status = 'completed' AND il.quantity_on_hand <= il.reorder_level",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: the whole stock key reached through two tables",
+  "sql": "SELECT SUM(oi.quantity) AS units FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id JOIN inventory_levels il ON il.outlet_id = o.outlet_id AND il.product_id = p.id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: the whole stock key, half in ON and half in WHERE",
+  "sql": "SELECT SUM(oi.line_total) AS revenue FROM order_items oi JOIN inventory_levels il ON il.product_id = oi.product_id WHERE il.outlet_id = oi.outlet_id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: stock value: a figure built from the stock row and its product",
+  "sql": "SELECT t.name AS outlet, ROUND(SUM(il.quantity_on_hand * p.cost_price), 2) AS value FROM inventory_levels il JOIN products p ON p.id = il.product_id JOIN outlets t ON t.id = il.outlet_id GROUP BY t.name",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: purchase lines joined to order, supplier, product",
+  "sql": "SELECT s.name AS supplier, SUM(i.line_total) AS purchases FROM purchase_order_items i JOIN purchase_orders po ON po.id = i.purchase_order_id JOIN suppliers s ON s.id = po.supplier_id JOIN products p ON p.id = i.product_id WHERE po.status = 'received' GROUP BY s.name",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: purchase orders by supplier and outlet",
+  "sql": "SELECT s.name AS supplier, t.name AS outlet, SUM(po.total_amount) AS purchases FROM purchase_orders po JOIN suppliers s ON s.id = po.supplier_id JOIN outlets t ON t.id = po.outlet_id GROUP BY s.name, t.name",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: expenses by category and outlet",
+  "sql": "SELECT c.name AS category, t.name AS outlet, ROUND(SUM(e.amount), 2) AS spent FROM expenses e JOIN expense_categories c ON c.id = e.category_id JOIN outlets t ON t.id = e.outlet_id GROUP BY c.name, t.name",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: movements by product",
+  "sql": "SELECT p.name AS product, SUM(m.quantity) AS moved FROM stock_movements m JOIN products p ON p.id = m.product_id GROUP BY p.name",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: the other table pinned to one row by a constant on its key",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o JOIN outlets t ON t.code = 'IND'",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "sound: a filter through EXISTS instead of a join",
+  "sql": "SELECT SUM(oi.line_total) AS revenue FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND EXISTS (SELECT 1 FROM inventory_levels il WHERE il.product_id = oi.product_id AND il.quantity_on_hand <= il.reorder_level)",
+  "verdict": "passed",
+  "judged": 2,
+  "uncertain": []
+ },
+ {
+  "name": "sound: a filter through IN",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o WHERE o.customer_id IN (SELECT v.customer_id FROM customer_visits v)",
+  "verdict": "passed",
+  "judged": 2,
+  "uncertain": []
+ },
+ {
+  "name": "sound: a correlated subquery that adds up one table",
+  "sql": "SELECT t.name AS outlet, (SELECT SUM(o.total_amount) FROM orders o WHERE o.outlet_id = t.id) AS revenue, (SELECT COUNT(v.id) FROM customer_visits v WHERE v.outlet_id = t.id) AS visits FROM outlets t",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "sound: a self-join on the key",
+  "sql": "SELECT SUM(a.total_amount) AS revenue FROM orders a JOIN orders b ON b.id = a.id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "repetition_does_not_matter: MIN and MAX",
+  "sql": "SELECT MIN(o.total_amount) AS low, MAX(o.total_amount) AS high FROM orders o JOIN order_items oi ON oi.order_id = o.id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "repetition_does_not_matter: COUNT(DISTINCT)",
+  "sql": "SELECT COUNT(DISTINCT o.id) AS orders, COUNT(DISTINCT v.customer_id) AS customers FROM orders o JOIN customer_visits v ON v.outlet_id = o.outlet_id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "repetition_does_not_matter: SUM(DISTINCT)",
+  "sql": "SELECT SUM(DISTINCT o.total_amount) AS amounts FROM orders o JOIN order_items oi ON oi.order_id = o.id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "repetition_does_not_matter: COUNT(*)",
+  "sql": "SELECT COUNT(*) AS n FROM orders o JOIN order_items oi ON oi.order_id = o.id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "repetition_does_not_matter: no aggregate at all",
+  "sql": "SELECT o.order_no, v.source FROM orders o JOIN customer_visits v ON v.outlet_id = o.outlet_id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "repetition_does_not_matter: a window function",
+  "sql": "SELECT o.order_no, SUM(o.total_amount) OVER (PARTITION BY o.outlet_id) AS running FROM orders o JOIN order_items oi ON oi.order_id = o.id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "uncertain: a CTE joined and then added up",
+  "sql": "WITH low AS (SELECT il.outlet_id, il.product_id FROM inventory_levels il WHERE il.quantity_on_hand <= il.reorder_level) SELECT SUM(oi.line_total) AS revenue FROM order_items oi JOIN low ON low.product_id = oi.product_id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": [
+   "a subquery, CTE or function in FROM"
+  ]
+ },
+ {
+  "name": "uncertain: a subquery joined and then added up",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o JOIN (SELECT v.outlet_id FROM customer_visits v) AS s ON s.outlet_id = o.outlet_id",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": [
+   "a subquery, CTE or function in FROM"
+  ]
+ },
+ {
+  "name": "uncertain: a join on OR",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o JOIN customer_visits v ON v.order_id = o.id OR v.customer_id = o.customer_id",
+  "verdict": "passed",
+  "judged": 0,
+  "uncertain": [
+   "tables joined by OR, an inequality or an expression"
+  ]
+ },
+ {
+  "name": "uncertain: a join on an inequality",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id AND o.order_date >= c.joined_on JOIN customer_visits v ON v.visit_date < o.order_date",
+  "verdict": "passed",
+  "judged": 0,
+  "uncertain": [
+   "tables joined by OR, an inequality or an expression"
+  ]
+ },
+ {
+  "name": "uncertain: a join on an expression",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o JOIN customer_visits v ON CAST(v.order_id AS TEXT) = CAST(o.id AS TEXT)",
+  "verdict": "passed",
+  "judged": 0,
+  "uncertain": [
+   "tables joined by OR, an inequality or an expression"
+  ]
+ },
+ {
+  "name": "uncertain: tables tied together by an inequality in WHERE",
+  "sql": "SELECT SUM(e.amount) AS spent FROM expenses e JOIN orders o ON o.outlet_id = e.outlet_id WHERE o.order_date > e.expense_date",
+  "verdict": "passed",
+  "judged": 0,
+  "uncertain": [
+   "tables joined by OR, an inequality or an expression"
+  ]
+ },
+ {
+  "name": "uncertain: a set-returning function",
+  "sql": "SELECT SUM(o.total_amount) AS revenue FROM orders o JOIN generate_series(1, 3) AS g(n) ON true",
+  "verdict": "passed",
+  "judged": 0,
+  "uncertain": [
+   "a subquery, CTE or function in FROM"
+  ]
+ },
+ {
+  "name": "golden: A1-revenue-last-month/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: A2-revenue-by-outlet/sales_agent",
+  "sql": "SELECT t.name AS outlet, ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue\nFROM orders o JOIN outlets t ON t.id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\nGROUP BY t.name ORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: A3-revenue-by-product/sales_agent",
+  "sql": "SELECT p.name AS product, ROUND(SUM(oi.line_total), 2) AS revenue\nFROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id\nWHERE o.status = 'completed' AND oi.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\nGROUP BY p.name ORDER BY revenue DESC\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: A4-top-selling-products/sales_agent",
+  "sql": "SELECT p.name AS product, SUM(oi.quantity) AS units\nFROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id\nWHERE o.status = 'completed' AND oi.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\nGROUP BY p.name ORDER BY units DESC, p.name LIMIT 5\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: A5-revenue-of-low-stock-products/general",
+  "sql": "SELECT ROUND(SUM(oi.line_total), 2) AS revenue\nFROM order_items oi JOIN orders o ON o.id = oi.order_id\nJOIN inventory_levels il ON il.outlet_id = oi.outlet_id AND il.product_id = oi.product_id\nWHERE o.status = 'completed' AND il.quantity_on_hand <= il.reorder_level\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: A6-revenue-two-outlets/sales_agent",
+  "sql": "SELECT t.name AS outlet, ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue\nFROM orders o JOIN outlets t ON t.id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n  AND (t.name ILIKE 'Indiranagar' OR t.name ILIKE 'Koramangala')\nGROUP BY t.name ORDER BY revenue DESC\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: A7-completed-orders-all-time/sales_agent",
+  "sql": "SELECT COUNT(*) AS orders FROM orders o WHERE o.status = 'completed'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: A8-average-order-value/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount) / NULLIF(COUNT(*), 0), 2) AS average_order_value\nFROM orders o WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: B1-low-stock-products/inventory_agent",
+  "sql": "SELECT t.name AS outlet, p.name AS product, il.quantity_on_hand AS on_hand, il.reorder_level\nFROM inventory_levels il JOIN outlets t ON t.id = il.outlet_id JOIN products p ON p.id = il.product_id\nWHERE il.quantity_on_hand <= il.reorder_level AND il.quantity_on_hand > 0 AND p.is_active\nORDER BY t.name, p.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: B2-stock-by-outlet/inventory_agent",
+  "sql": "SELECT t.name AS outlet, SUM(il.quantity_on_hand) AS units\nFROM inventory_levels il JOIN outlets t ON t.id = il.outlet_id JOIN products p ON p.id = il.product_id\nWHERE p.is_active GROUP BY t.name ORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: B3-largest-shortage-outlet/inventory_agent",
+  "sql": "SELECT t.name AS outlet, SUM(il.reorder_level - il.quantity_on_hand) AS shortage\nFROM inventory_levels il JOIN outlets t ON t.id = il.outlet_id JOIN products p ON p.id = il.product_id\nWHERE il.reorder_level - il.quantity_on_hand > 0 AND p.is_active\nGROUP BY t.name ORDER BY shortage DESC LIMIT 1\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: B4-zero-stock-products/inventory_agent",
+  "sql": "SELECT t.name AS outlet, p.name AS product\nFROM inventory_levels il JOIN outlets t ON t.id = il.outlet_id JOIN products p ON p.id = il.product_id\nWHERE il.quantity_on_hand <= 0 AND p.is_active ORDER BY t.name, p.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: B5-units-received-by-product/inventory_agent",
+  "sql": "SELECT p.name AS product, SUM(sm.quantity) AS units\nFROM stock_movements sm JOIN products p ON p.id = sm.product_id\nWHERE sm.movement_type = 'purchase' AND sm.movement_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\nGROUP BY p.name ORDER BY p.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: C1-customers-visited-last-month/customer_agent",
+  "sql": "SELECT COUNT(DISTINCT v.customer_id) AS customers FROM customer_visits v\nWHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: C2-visits-by-outlet/customer_agent",
+  "sql": "SELECT t.name AS outlet, COUNT(*) AS visits\nFROM customer_visits v JOIN outlets t ON t.id = v.outlet_id\nWHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY t.name ORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: C3-returning-customers/customer_agent",
+  "sql": "SELECT COUNT(*) AS customers FROM (\n  SELECT v.customer_id FROM customer_visits v WHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n  GROUP BY v.customer_id HAVING COUNT(*) > 1) AS repeaters\n",
+  "verdict": "passed",
+  "judged": 2,
+  "uncertain": []
+ },
+ {
+  "name": "golden: C4-visits-in-a-date-range/customer_agent",
+  "sql": "SELECT COUNT(*) AS visits FROM customer_visits v WHERE v.visit_date BETWEEN DATE '2026-10-10' AND DATE '2026-10-20'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: C5-customers-by-segment/customer_agent",
+  "sql": "SELECT c.segment AS segment, COUNT(*) AS customers FROM customers c GROUP BY c.segment ORDER BY customers DESC\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: D1-total-purchases/general",
+  "sql": "SELECT ROUND(SUM(po.total_amount), 2) AS purchases FROM purchase_orders po WHERE po.status = 'received'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: D2-purchases-by-supplier/general",
+  "sql": "SELECT s.name AS supplier, ROUND(SUM(po.total_amount), 2) AS purchases\nFROM purchase_orders po JOIN suppliers s ON s.id = po.supplier_id\nWHERE po.status = 'received' GROUP BY s.name ORDER BY purchases DESC\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: D3-purchases-by-outlet/general",
+  "sql": "SELECT t.name AS outlet, ROUND(SUM(po.total_amount), 2) AS purchases\nFROM purchase_orders po JOIN outlets t ON t.id = po.outlet_id\nWHERE po.status = 'received' GROUP BY t.name ORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: D4-purchases-by-month/general",
+  "sql": "SELECT CAST(DATE_TRUNC('month', po.ordered_on) AS DATE) AS month, ROUND(SUM(po.total_amount), 2) AS purchases\nFROM purchase_orders po WHERE po.status = 'received'\nGROUP BY 1 ORDER BY 1\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: E1-total-expenses/general",
+  "sql": "SELECT ROUND(SUM(e.amount), 2) AS expenses FROM expenses e WHERE e.expense_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: E2-expenses-by-category/general",
+  "sql": "SELECT ec.name AS category, ROUND(SUM(e.amount), 2) AS expenses\nFROM expenses e JOIN expense_categories ec ON ec.id = e.category_id\nWHERE e.expense_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY ec.name ORDER BY expenses DESC\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: E3-expenses-by-outlet/general",
+  "sql": "SELECT t.name AS outlet, ROUND(SUM(e.amount), 2) AS expenses\nFROM expenses e JOIN outlets t ON t.id = e.outlet_id\nWHERE e.expense_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY t.name ORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: E4-expenses-two-months/general",
+  "sql": "SELECT CAST(DATE_TRUNC('month', e.expense_date) AS DATE) AS month, ROUND(SUM(e.amount), 2) AS expenses\nFROM expenses e WHERE e.expense_date BETWEEN DATE '2026-09-01' AND DATE '2026-10-31'\nGROUP BY 1 ORDER BY 1\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: F1-revenue-and-shortage/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: F1-revenue-and-shortage/inventory_agent",
+  "sql": "SELECT SUM(il.reorder_level - il.quantity_on_hand) AS shortage\nFROM inventory_levels il JOIN products p ON p.id = il.product_id\nWHERE il.reorder_level - il.quantity_on_hand > 0 AND p.is_active\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: F2-revenue-and-visits-by-outlet/sales_agent",
+  "sql": "SELECT t.name AS outlet, ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue\nFROM orders o JOIN outlets t ON t.id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\nGROUP BY t.name ORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: F2-revenue-and-visits-by-outlet/customer_agent",
+  "sql": "SELECT t.name AS outlet, COUNT(*) AS visits\nFROM customer_visits v JOIN outlets t ON t.id = v.outlet_id\nWHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY t.name ORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: F3-sales-and-purchases-by-month/general",
+  "sql": "WITH revenue AS (\n  SELECT CAST(DATE_TRUNC('month', o.order_date) AS DATE) AS month, SUM(o.total_amount - o.tax_amount) AS revenue\n  FROM orders o WHERE o.status = 'completed'\n    AND o.order_date BETWEEN DATE '2026-07-01' AND DATE '2026-10-31' GROUP BY 1),\npurchases AS (\n  SELECT CAST(DATE_TRUNC('month', po.ordered_on) AS DATE) AS month, SUM(po.total_amount) AS purchases\n  FROM purchase_orders po WHERE po.status = 'received'\n    AND po.ordered_on BETWEEN DATE '2026-07-01' AND DATE '2026-10-31' GROUP BY 1)\nSELECT r.month, ROUND(r.revenue, 2) AS revenue, ROUND(p.purchases, 2) AS purchases\nFROM revenue r LEFT JOIN purchases p ON p.month = r.month ORDER BY r.month\n",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "golden: F4-revenue-per-visiting-customer/general",
+  "sql": "WITH revenue AS (\n  SELECT o.outlet_id, SUM(o.total_amount - o.tax_amount) AS revenue FROM orders o\n  WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY o.outlet_id),\nvisits AS (\n  SELECT v.outlet_id, COUNT(DISTINCT v.customer_id) AS customers FROM customer_visits v\n  WHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY v.outlet_id)\nSELECT t.name AS outlet, ROUND(r.revenue, 2) AS revenue, v.customers,\n  ROUND(r.revenue / NULLIF(v.customers, 0), 2) AS revenue_per_customer\nFROM outlets t JOIN revenue r ON r.outlet_id = t.id JOIN visits v ON v.outlet_id = t.id\nORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "golden: F5-sales-and-expenses-by-outlet/general",
+  "sql": "WITH revenue AS (\n  SELECT o.outlet_id, SUM(o.total_amount - o.tax_amount) AS revenue FROM orders o\n  WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY o.outlet_id),\nspent AS (\n  SELECT e.outlet_id, SUM(e.amount) AS expenses FROM expenses e\n  WHERE e.expense_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY e.outlet_id)\nSELECT t.name AS outlet, ROUND(r.revenue, 2) AS revenue, ROUND(s.expenses, 2) AS expenses,\n  ROUND(r.revenue - s.expenses, 2) AS net\nFROM outlets t JOIN revenue r ON r.outlet_id = t.id JOIN spent s ON s.outlet_id = t.id\nORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G1-revenue-by-category/sales_agent",
+  "sql": "SELECT c.name AS category, ROUND(SUM(oi.line_total), 2) AS revenue\nFROM order_items oi JOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id\nWHERE o.status = 'completed' AND oi.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\nGROUP BY c.name ORDER BY revenue DESC\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G2-purchases-by-product/general",
+  "sql": "SELECT p.name AS product, ROUND(SUM(poi.line_total), 2) AS purchases\nFROM purchase_order_items poi JOIN purchase_orders po ON po.id = poi.purchase_order_id\nJOIN products p ON p.id = poi.product_id\nWHERE po.status = 'received' GROUP BY p.name ORDER BY purchases DESC\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G3-total-revenue-and-total-visits/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G3-total-revenue-and-total-visits/customer_agent",
+  "sql": "SELECT COUNT(*) AS visits FROM customer_visits v WHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G4-revenue-of-frequent-visitors/general",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n  AND o.customer_id IN (SELECT v.customer_id FROM customer_visits v\n                        WHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY v.customer_id HAVING COUNT(*) > 3)\n",
+  "verdict": "passed",
+  "judged": 2,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G5-expenses-as-share-of-revenue/general",
+  "sql": "WITH revenue AS (\n  SELECT o.outlet_id, SUM(o.total_amount - o.tax_amount) AS revenue FROM orders o\n  WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY o.outlet_id),\nspent AS (\n  SELECT e.outlet_id, SUM(e.amount) AS expenses FROM expenses e\n  WHERE e.expense_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY e.outlet_id)\nSELECT t.name AS outlet, ROUND(100 * s.expenses / NULLIF(r.revenue, 0), 2) AS expense_percent\nFROM outlets t JOIN revenue r ON r.outlet_id = t.id JOIN spent s ON s.outlet_id = t.id\nORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G6-visits-and-orders-by-segment/customer_agent",
+  "sql": "WITH visits AS (\n  SELECT c.segment, COUNT(*) AS visits FROM customer_visits v JOIN customers c ON c.id = v.customer_id\n  WHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY c.segment),\norders_made AS (\n  SELECT c.segment, COUNT(*) AS orders FROM orders o JOIN customers c ON c.id = o.customer_id\n  WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' GROUP BY c.segment)\nSELECT v.segment, v.visits, m.orders FROM visits v JOIN orders_made m ON m.segment = v.segment\nORDER BY v.segment\n",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G7-units-of-low-stock-products/general",
+  "sql": "SELECT SUM(oi.quantity) AS units\nFROM order_items oi JOIN orders o ON o.id = oi.order_id\nJOIN inventory_levels il ON il.outlet_id = oi.outlet_id AND il.product_id = oi.product_id\nWHERE o.status = 'completed' AND oi.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND il.quantity_on_hand <= il.reorder_level\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: G8-low-stock-with-units-sold/general",
+  "sql": "SELECT t.name AS outlet, p.name AS product, il.quantity_on_hand AS on_hand, SUM(oi.quantity) AS units_sold\nFROM order_items oi JOIN orders o ON o.id = oi.order_id\nJOIN inventory_levels il ON il.outlet_id = oi.outlet_id AND il.product_id = oi.product_id\nJOIN outlets t ON t.id = il.outlet_id JOIN products p ON p.id = il.product_id\nWHERE o.status = 'completed' AND oi.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND il.quantity_on_hand <= il.reorder_level\nGROUP BY t.name, p.name, il.quantity_on_hand ORDER BY t.name, p.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: H1-revenue-with-and-without-visit/general",
+  "sql": "SELECT ROUND(SUM(CASE WHEN cv.id IS NOT NULL THEN o.total_amount - o.tax_amount ELSE 0 END), 2) AS with_visit,\n  ROUND(SUM(CASE WHEN cv.id IS NULL THEN o.total_amount - o.tax_amount ELSE 0 END), 2) AS without_visit\nFROM orders o LEFT JOIN customer_visits cv ON cv.order_id = o.id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: H2-stock-and-receipts-at-one-outlet/inventory_agent",
+  "sql": "SELECT p.name AS product, il.quantity_on_hand AS on_hand, COALESCE(SUM(sm.quantity), 0) AS received\nFROM inventory_levels il JOIN outlets t ON t.id = il.outlet_id JOIN products p ON p.id = il.product_id\nLEFT JOIN stock_movements sm ON sm.outlet_id = il.outlet_id AND sm.product_id = il.product_id\n  AND sm.movement_type = 'purchase' AND sm.movement_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\nWHERE t.name ILIKE 'Indiranagar' AND p.is_active\nGROUP BY p.name, il.quantity_on_hand ORDER BY p.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: H3-revenue-and-expenses-early-november/general",
+  "sql": "WITH revenue AS (\n  SELECT o.outlet_id, SUM(o.total_amount - o.tax_amount) AS revenue FROM orders o\n  WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-11-01' AND DATE '2026-11-04'\n  GROUP BY o.outlet_id),\nspent AS (\n  SELECT e.outlet_id, SUM(e.amount) AS expenses FROM expenses e\n  WHERE e.expense_date BETWEEN DATE '2026-11-01' AND DATE '2026-11-04' GROUP BY e.outlet_id)\nSELECT t.name AS outlet, ROUND(COALESCE(r.revenue, 0), 2) AS revenue, ROUND(COALESCE(s.expenses, 0), 2) AS expenses\nFROM outlets t LEFT JOIN revenue r ON r.outlet_id = t.id LEFT JOIN spent s ON s.outlet_id = t.id\nORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "golden: H4-products-without-sales/sales_agent",
+  "sql": "SELECT p.name AS product FROM products p\nWHERE NOT EXISTS (\n  SELECT 1 FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN outlets t ON t.id = oi.outlet_id\n  WHERE oi.product_id = p.id AND o.status = 'completed'\n    AND oi.order_date = DATE '2026-10-05' AND t.name ILIKE 'Indiranagar')\nORDER BY p.name\n",
+  "verdict": "passed",
+  "judged": 2,
+  "uncertain": []
+ },
+ {
+  "name": "golden: I1-gross-product-sales/sales_agent",
+  "sql": "SELECT ROUND(SUM(oi.line_total), 2) AS product_sales\nFROM order_items oi JOIN orders o ON o.id = oi.order_id\nWHERE o.status = 'completed' AND oi.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: I2-gross-discounts-net/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.subtotal), 2) AS gross_sales, ROUND(SUM(o.discount_amount), 2) AS discounts,\n  ROUND(SUM(o.total_amount - o.tax_amount), 2) AS net_revenue\nFROM orders o WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: J1-revenue-one-day-one-outlet/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o JOIN outlets t ON t.id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date = DATE '2026-10-15' AND t.name ILIKE 'Whitefield'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: K1-completed-orders-last-month/sales_agent",
+  "sql": "SELECT COUNT(*) AS orders FROM orders o WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: K2-revenue-this-month/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-11-01' AND DATE '2026-11-11'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: K3-visitors-month-to-date/customer_agent",
+  "sql": "SELECT COUNT(DISTINCT v.customer_id) AS customers FROM customer_visits v WHERE v.visit_date BETWEEN DATE '2026-11-01' AND DATE '2026-11-11'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: K4-revenue-in-a-date-range/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-10' AND DATE '2026-10-20'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: L1-viewer-revenue-by-outlet/sales_agent",
+  "sql": "SELECT t.name AS outlet, ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue\nFROM orders o JOIN outlets t ON t.id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\nGROUP BY t.name ORDER BY t.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: L2-other-company-viewer-purchases/general",
+  "sql": "SELECT s.name AS supplier, ROUND(SUM(po.total_amount), 2) AS purchases\nFROM purchase_orders po JOIN suppliers s ON s.id = po.supplier_id\nWHERE po.status = 'received' GROUP BY s.name ORDER BY purchases DESC\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: M1-two-independent-facts/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: M1-two-independent-facts/inventory_agent",
+  "sql": "SELECT t.name AS outlet, p.name AS product, il.quantity_on_hand AS on_hand, il.reorder_level\nFROM inventory_levels il JOIN outlets t ON t.id = il.outlet_id JOIN products p ON p.id = il.product_id\nWHERE il.quantity_on_hand <= il.reorder_level AND il.quantity_on_hand > 0 AND p.is_active\nORDER BY t.name, p.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: M2-three-independent-facts/sales_agent",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders o\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: M2-three-independent-facts/inventory_agent",
+  "sql": "SELECT t.name AS outlet, p.name AS product, il.quantity_on_hand AS on_hand, il.reorder_level\nFROM inventory_levels il JOIN outlets t ON t.id = il.outlet_id JOIN products p ON p.id = il.product_id\nWHERE il.quantity_on_hand <= il.reorder_level AND il.quantity_on_hand > 0 AND p.is_active\nORDER BY t.name, p.name\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden: M2-three-independent-facts/customer_agent",
+  "sql": "SELECT COUNT(DISTINCT v.customer_id) AS customers FROM customer_visits v\nWHERE v.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden trap: A5-revenue-of-low-stock-products: order totals across order lines",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN order_items oi ON o.id = oi.order_id\nJOIN inventory_levels il ON oi.outlet_id = il.outlet_id AND oi.product_id = il.product_id\nWHERE o.status = 'completed' AND il.quantity_on_hand <= il.reorder_level\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to inventory_levels, order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: A5-revenue-of-low-stock-products: stock joined on the product only",
+  "sql": "SELECT ROUND(SUM(oi.line_total), 2) AS v FROM order_items oi JOIN orders o ON o.id = oi.order_id\nJOIN inventory_levels il ON il.product_id = oi.product_id\nWHERE o.status = 'completed' AND il.quantity_on_hand <= il.reorder_level\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(oi.line_total) adds up rows of order_items that this query repeats: order_items is joined to inventory_levels in a way that can match several rows for one row of order_items, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: A8-average-order-value: average across order lines",
+  "sql": "SELECT ROUND(AVG(o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN order_items oi ON oi.order_id = o.id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "AVG(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: D1-total-purchases: order totals across purchase lines",
+  "sql": "SELECT ROUND(SUM(po.total_amount), 2) AS v FROM purchase_orders po JOIN purchase_order_items poi ON poi.purchase_order_id = po.id WHERE po.status = 'received'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(po.total_amount) adds up rows of purchase_orders that this query repeats: purchase_orders is joined to purchase_order_items in a way that can match several rows for one row of purchase_orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: F3-sales-and-purchases-by-month: orders joined to purchase orders on the outlet",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN purchase_orders po ON po.outlet_id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to purchase_orders in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: F4-revenue-per-visiting-customer: orders joined to visits on the outlet",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS v FROM outlets t JOIN orders o ON o.outlet_id = t.id\nJOIN customer_visits cv ON cv.outlet_id = t.id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND cv.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to customer_visits in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: G1-revenue-by-category: orders joined to order_items, order totals added up",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id JOIN categories c ON c.id = p.category_id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND c.name = 'Coffee'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to order_items, products in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: G2-purchases-by-product: purchase orders joined to purchase lines, order totals added up",
+  "sql": "SELECT ROUND(SUM(po.total_amount), 2) AS v FROM purchase_orders po\nJOIN purchase_order_items poi ON poi.purchase_order_id = po.id JOIN products p ON p.id = poi.product_id\nWHERE po.status = 'received'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(po.total_amount) adds up rows of purchase_orders that this query repeats: purchase_orders is joined to products, purchase_order_items in a way that can match several rows for one row of purchase_orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: G3-total-revenue-and-total-visits: orders joined to visits on outlet_id",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN customer_visits cv ON cv.outlet_id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND cv.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to customer_visits in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: G4-revenue-of-frequent-visitors: orders joined to visits on customer_id",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN customer_visits cv ON cv.customer_id = o.customer_id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND cv.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to customer_visits in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: G5-expenses-as-share-of-revenue: expenses joined to orders on outlet_id",
+  "sql": "SELECT ROUND(SUM(e.amount), 2) AS v FROM expenses e JOIN orders o ON o.outlet_id = e.outlet_id\nWHERE e.expense_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(e.amount) adds up rows of expenses that this query repeats: expenses is joined to orders in a way that can match several rows for one row of expenses, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: G6-visits-and-orders-by-segment: customers joined to both orders and visits",
+  "sql": "SELECT COUNT(cv.id) AS v FROM customers c JOIN customer_visits cv ON cv.customer_id = c.id\nJOIN orders o ON o.customer_id = c.id\nWHERE cv.visit_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND o.status = 'completed'\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "COUNT(cv.id) adds up rows of customer_visits that this query repeats: customer_visits is joined to orders in a way that can match several rows for one row of customer_visits, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: G7-units-of-low-stock-products: order_items joined to inventory_levels on product_id only",
+  "sql": "SELECT SUM(oi.quantity) AS v FROM order_items oi JOIN orders o ON o.id = oi.order_id\nJOIN inventory_levels il ON il.product_id = oi.product_id\nWHERE o.status = 'completed' AND oi.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31' AND il.quantity_on_hand <= il.reorder_level\n",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(oi.quantity) adds up rows of order_items that this query repeats: order_items is joined to inventory_levels in a way that can match several rows for one row of order_items, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "golden trap: H1-revenue-with-and-without-visit: INNER JOIN drops orders without a visit",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN customer_visits cv ON cv.order_id = o.id\nWHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden trap: H2-stock-and-receipts-at-one-outlet: INNER JOIN drops stock rows without a movement",
+  "sql": "SELECT COUNT(DISTINCT il.product_id) AS v FROM inventory_levels il JOIN outlets t ON t.id = il.outlet_id\nJOIN stock_movements sm ON sm.outlet_id = il.outlet_id AND sm.product_id = il.product_id\nWHERE t.name ILIKE 'Indiranagar' AND sm.movement_type = 'purchase' AND sm.movement_date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden trap: H3-revenue-and-expenses-early-november: INNER JOIN drops outlets without expenses",
+  "sql": "WITH revenue AS (\n  SELECT o.outlet_id, SUM(o.total_amount - o.tax_amount) AS revenue FROM orders o\n  WHERE o.status = 'completed' AND o.order_date BETWEEN DATE '2026-11-01' AND DATE '2026-11-04'\n  GROUP BY o.outlet_id),\nspent AS (\n  SELECT e.outlet_id, SUM(e.amount) AS expenses FROM expenses e\n  WHERE e.expense_date BETWEEN DATE '2026-11-01' AND DATE '2026-11-04' GROUP BY e.outlet_id)\nSELECT COUNT(*) AS v FROM outlets t JOIN revenue r ON r.outlet_id = t.id JOIN spent s ON s.outlet_id = t.id\n",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "golden trap: H4-products-without-sales: LEFT JOIN undone by a filter in WHERE",
+  "sql": "SELECT COUNT(*) AS v FROM products p LEFT JOIN order_items oi ON oi.product_id = p.id\nWHERE oi.order_date = DATE '2026-10-05' AND oi.id IS NULL\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden trap: J1-revenue-one-day-one-outlet: SUM(DISTINCT) on one table",
+  "sql": "SELECT ROUND(SUM(DISTINCT o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN outlets t ON t.id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date = DATE '2026-10-15' AND t.name ILIKE 'Whitefield'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "golden trap: J1-revenue-one-day-one-outlet: SUM(DISTINCT) as a fix for a fan-out",
+  "sql": "SELECT ROUND(SUM(DISTINCT o.total_amount - o.tax_amount), 2) AS v FROM orders o JOIN order_items oi ON oi.order_id = o.id\nJOIN outlets t ON t.id = o.outlet_id\nWHERE o.status = 'completed' AND o.order_date = DATE '2026-10-15' AND t.name ILIKE 'Whitefield'\n",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #1",
+  "sql": "SELECT CAST(DATE_TRUNC('MONTH', o.order_date) AS DATE) AS month, ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders AS o WHERE o.status = 'completed' AND o.order_date BETWEEN CAST('2026-10-01' AS DATE) AND CAST('2026-11-11' AS DATE) GROUP BY CAST(DATE_TRUNC('MONTH', o.order_date) AS DATE) ORDER BY month LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #2",
+  "sql": "SELECT COUNT(*) AS orders FROM orders WHERE orders.status = 'completed' LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #3",
+  "sql": "SELECT COUNT(*) FILTER(WHERE cv.visit_date >= CAST('2026-10-12' AS DATE) AND cv.visit_date <= CAST('2026-11-10' AS DATE)) AS current_period_visits, COUNT(*) FILTER(WHERE cv.visit_date >= CAST('2026-09-12' AS DATE) AND cv.visit_date <= CAST('2026-10-11' AS DATE)) AS previous_period_visits, COUNT(*) FILTER(WHERE cv.visit_date >= CAST('2026-10-12' AS DATE) AND cv.visit_date <= CAST('2026-11-10' AS DATE)) - COUNT(*) FILTER(WHERE cv.visit_date >= CAST('2026-09-12' AS DATE) AND cv.visit_date <= CAST('2026-10-11' AS DATE)) AS change, ROUND(CAST(100.0 * (COUNT(*) FILTER(WHERE cv.visit_date >= CAST('2026-10-12' AS DATE) AND cv.visit_date <= CAST('2026-11-10' AS DATE)) - COUNT(*) FILTER(WHERE cv.visit_date >= CAST('2026-09-12' AS DATE) AND cv.visit_date <= CAST('2026-10-11' AS DATE))) / NULLIF(COUNT(*) FILTER(WHERE cv.visit_date >= CAST('2026-09-12' AS DATE) AND cv.visit_date <= CAST('2026-10-11' AS DATE)), 0) AS DECIMAL), 1) AS change_percent FROM customer_visits AS cv LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #4",
+  "sql": "SELECT COUNT(DISTINCT customer_visits.customer_id) AS visiting_customers FROM customer_visits WHERE customer_visits.visit_date >= CAST('2026-11-01' AS DATE) AND customer_visits.visit_date <= CAST('2026-11-11' AS DATE) LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #5",
+  "sql": "SELECT COUNT(DISTINCT cv.customer_id) AS returning_customers FROM customer_visits AS cv WHERE cv.visit_date >= CAST('2026-11-01' AS DATE) AND cv.visit_date <= CAST('2026-11-11' AS DATE) AND EXISTS(SELECT 1 FROM customer_visits AS prev WHERE prev.customer_id = cv.customer_id AND prev.visit_date < CAST('2026-11-01' AS DATE)) LIMIT 1001",
+  "verdict": "passed",
+  "judged": 2,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #6",
+  "sql": "SELECT COUNT(DISTINCT cv.customer_id) AS visiting_customers FROM customer_visits AS cv WHERE cv.visit_date >= CAST('2026-11-01' AS DATE) AND cv.visit_date <= CAST('2026-11-11' AS DATE) LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #7",
+  "sql": "SELECT COUNT(DISTINCT cv.customer_id) AS visiting_customers FROM customer_visits AS cv WHERE cv.visit_date BETWEEN CAST('2026-11-01' AS DATE) AND CAST('2026-11-11' AS DATE) LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #8",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders AS o JOIN order_items AS oi ON o.id = oi.order_id JOIN inventory_levels AS il ON oi.outlet_id = il.outlet_id AND oi.product_id = il.product_id WHERE o.status = 'completed' AND il.quantity_on_hand <= il.reorder_level LIMIT 1001",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(o.total_amount - o.tax_amount) adds up rows of orders that this query repeats: orders is joined to inventory_levels, order_items in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "real model, earlier phases #9",
+  "sql": "SELECT ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders AS o WHERE o.status = 'completed' AND o.order_date >= CAST('2026-10-01' AS DATE) AND o.order_date <= CAST('2026-10-31' AS DATE) LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #10",
+  "sql": "SELECT ROUND(SUM(oi.line_total), 2) AS revenue FROM order_items AS oi JOIN orders AS o ON oi.order_id = o.id JOIN inventory_levels AS il ON oi.outlet_id = il.outlet_id AND oi.product_id = il.product_id WHERE o.status = 'completed' AND il.quantity_on_hand <= il.reorder_level LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #11",
+  "sql": "SELECT ROUND(SUM(orders.total_amount - orders.tax_amount), 2) AS revenue FROM orders WHERE orders.status = 'completed' AND orders.order_date >= CAST('2026-10-01' AS DATE) AND orders.order_date <= CAST('2026-10-31' AS DATE) LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #12",
+  "sql": "SELECT ROUND(SUM(total_amount - tax_amount) FILTER(WHERE order_date >= CAST('2026-11-01' AS DATE) AND order_date <= CAST('2026-11-11' AS DATE) AND status = 'completed'), 2) AS current_period_revenue, ROUND(SUM(total_amount - tax_amount) FILTER(WHERE order_date >= CAST('2026-10-01' AS DATE) AND order_date <= CAST('2026-10-11' AS DATE) AND status = 'completed'), 2) AS previous_period_revenue, ROUND(SUM(total_amount - tax_amount) FILTER(WHERE order_date >= CAST('2026-11-01' AS DATE) AND order_date <= CAST('2026-11-11' AS DATE) AND status = 'completed'), 2) - ROUND(SUM(total_amount - tax_amount) FILTER(WHERE order_date >= CAST('2026-10-01' AS DATE) AND order_date <= CAST('2026-10-11' AS DATE) AND status = 'completed'), 2) AS change, ROUND(CAST(100.0 * (ROUND(SUM(total_amount - tax_amount) FILTER(WHERE order_date >= CAST('2026-11-01' AS DATE) AND order_date <= CAST('2026-11-11' AS DATE) AND status = 'completed'), 2) - ROUND(SUM(total_amount - tax_amount) FILTER(WHERE order_date >= CAST('2026-10-01' AS DATE) AND order_date <= CAST('2026-10-11' AS DATE) AND status = 'completed'), 2)) / NULLIF(ROUND(SUM(total_amount - tax_amount) FILTER(WHERE order_date >= CAST('2026-10-01' AS DATE) AND order_date <= CAST('2026-10-11' AS DATE) AND status = 'completed'), 2), 0) AS DECIMAL), 1) AS change_percent FROM orders LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #13",
+  "sql": "SELECT ROUND(SUM(total_amount - tax_amount), 2) AS revenue FROM orders WHERE status = 'completed' AND order_date >= CAST('2026-10-01' AS DATE) AND order_date <= CAST('2026-10-31' AS DATE) LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #14",
+  "sql": "SELECT c.segment AS segment, ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders AS o JOIN customers AS c ON o.customer_id = c.id WHERE o.status = 'completed' AND o.order_date >= CAST('2026-10-01' AS DATE) AND o.order_date <= CAST('2026-10-31' AS DATE) GROUP BY c.segment ORDER BY revenue DESC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #15",
+  "sql": "SELECT ec.name AS category, ROUND(SUM(e.amount), 2) AS expenses FROM expense_categories AS ec JOIN expenses AS e ON e.category_id = ec.id WHERE e.expense_date >= CAST('2026-10-01' AS DATE) AND e.expense_date <= CAST('2026-10-31' AS DATE) GROUP BY ec.name ORDER BY expenses DESC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #16",
+  "sql": "SELECT o.name AS outlet, COUNT(cv.id) AS visits FROM outlets AS o JOIN customer_visits AS cv ON o.id = cv.outlet_id GROUP BY o.name ORDER BY visits DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #17",
+  "sql": "SELECT o.name AS outlet, COUNT(cv.id) AS visits FROM outlets AS o JOIN customer_visits AS cv ON o.id = cv.outlet_id WHERE cv.visit_date >= CAST('2026-11-01' AS DATE) AND cv.visit_date <= CAST('2026-11-11' AS DATE) GROUP BY o.name ORDER BY visits DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #18",
+  "sql": "SELECT o.name AS outlet, ROUND(COALESCE(SUM(e.amount), 0), 2) AS expenses FROM outlets AS o LEFT JOIN expenses AS e ON o.id = e.outlet_id AND e.expense_date >= CAST('2026-10-01' AS DATE) AND e.expense_date <= CAST('2026-10-31' AS DATE) GROUP BY o.id, o.name ORDER BY expenses DESC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #19",
+  "sql": "SELECT o.name AS outlet, ROUND(SUM(ord.total_amount - ord.tax_amount), 2) AS revenue FROM outlets AS o JOIN orders AS ord ON o.id = ord.outlet_id WHERE ord.status = 'completed' AND ord.order_date >= CAST('2026-11-01' AS DATE) AND ord.order_date <= CAST('2026-11-11' AS DATE) GROUP BY o.id, o.name ORDER BY revenue DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #20",
+  "sql": "SELECT o.name AS outlet, ROUND(SUM(ord.total_amount - ord.tax_amount), 2) AS revenue FROM outlets AS o JOIN orders AS ord ON o.id = ord.outlet_id WHERE ord.status = 'completed' GROUP BY o.id, o.name ORDER BY revenue ASC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #21",
+  "sql": "SELECT o.name AS outlet, ROUND(SUM(ord.total_amount - ord.tax_amount), 2) AS revenue FROM outlets AS o JOIN orders AS ord ON ord.outlet_id = o.id WHERE ord.status = 'completed' AND ord.order_date BETWEEN CAST('2026-11-01' AS DATE) AND CAST('2026-11-11' AS DATE) GROUP BY o.id, o.name ORDER BY revenue DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #22",
+  "sql": "SELECT o.name AS outlet, ROUND(SUM(ord.total_amount - ord.tax_amount), 2) AS revenue FROM outlets AS o JOIN orders AS ord ON ord.outlet_id = o.id WHERE ord.status = 'completed' GROUP BY o.name ORDER BY revenue DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #23",
+  "sql": "SELECT o.name AS outlet, ROUND(SUM(ord.total_amount - ord.tax_amount), 2) AS revenue, COUNT(DISTINCT cv.customer_id) AS visiting_customers FROM outlets AS o JOIN orders AS ord ON ord.outlet_id = o.id LEFT JOIN customer_visits AS cv ON cv.outlet_id = o.id AND cv.visit_date >= CAST('2026-11-01' AS DATE) AND cv.visit_date <= CAST('2026-11-11' AS DATE) WHERE ord.status = 'completed' AND ord.order_date >= CAST('2026-11-01' AS DATE) AND ord.order_date <= CAST('2026-11-11' AS DATE) GROUP BY o.id, o.name ORDER BY revenue DESC LIMIT 1",
+  "verdict": "refused",
+  "code": "unsafe_aggregation",
+  "reason": "SUM(ord.total_amount - ord.tax_amount) adds up rows of orders that this query repeats: orders is joined to customer_visits in a way that can match several rows for one row of orders, so each value is counted more than once and the figure is wrong. Fix it in one of these ways: (1) add up a column of the table that has one row per line instead (for example order_items.line_total rather than orders.total_amount); (2) work out each figure in its own subquery (WITH a AS (...), b AS (...)), grouped by the shared column, and join the subqueries; (3) if the other table only limits which rows count, use EXISTS or IN instead of a join; (4) if the join should match one row, join on the other table's whole unique key."
+ },
+ {
+  "name": "real model, earlier phases #24",
+  "sql": "SELECT o.name AS outlet, SUM(GREATEST(il.reorder_level - il.quantity_on_hand, 0)) AS shortage FROM inventory_levels AS il JOIN outlets AS o ON il.outlet_id = o.id GROUP BY o.name ORDER BY shortage DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #25",
+  "sql": "SELECT o.name AS outlet, SUM(GREATEST(il.reorder_level - il.quantity_on_hand, 0)) AS shortage FROM inventory_levels AS il JOIN outlets AS o ON o.id = il.outlet_id GROUP BY o.id, o.name ORDER BY shortage DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #26",
+  "sql": "SELECT o.name AS outlet, SUM(il.reorder_level - il.quantity_on_hand) AS shortage FROM inventory_levels AS il JOIN outlets AS o ON il.outlet_id = o.id WHERE il.quantity_on_hand < il.reorder_level GROUP BY o.id, o.name ORDER BY shortage DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #27",
+  "sql": "SELECT o.name AS outlet, SUM(il.reorder_level - il.quantity_on_hand) AS total_shortage FROM inventory_levels AS il JOIN outlets AS o ON il.outlet_id = o.id JOIN products AS p ON il.product_id = p.id WHERE p.is_active = TRUE AND il.quantity_on_hand <= il.reorder_level AND il.quantity_on_hand > 0 GROUP BY o.name ORDER BY total_shortage DESC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #28",
+  "sql": "SELECT o.name AS outlet, p.name AS product, i.quantity_on_hand AS quantity_on_hand, i.reorder_level AS reorder_level FROM inventory_levels AS i JOIN outlets AS o ON i.outlet_id = o.id JOIN products AS p ON i.product_id = p.id WHERE p.is_active = TRUE AND i.quantity_on_hand <= 0 ORDER BY o.name, p.name LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #29",
+  "sql": "SELECT o.name AS outlet, p.name AS product, i.quantity_on_hand AS quantity_on_hand, i.reorder_level AS reorder_level FROM inventory_levels AS i JOIN outlets AS o ON i.outlet_id = o.id JOIN products AS p ON i.product_id = p.id WHERE p.is_active = TRUE AND i.quantity_on_hand <= i.reorder_level AND i.quantity_on_hand > 0 ORDER BY i.quantity_on_hand ASC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #30",
+  "sql": "SELECT o.name AS outlet, p.name AS product, i.quantity_on_hand AS stock, i.reorder_level AS reorder_level FROM inventory_levels AS i JOIN outlets AS o ON i.outlet_id = o.id JOIN products AS p ON i.product_id = p.id WHERE p.is_active = TRUE AND i.quantity_on_hand <= i.reorder_level AND i.quantity_on_hand > 0 ORDER BY o.name, p.name LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #31",
+  "sql": "SELECT orders.order_no AS order_number, orders.order_date AS order_date, ROUND(orders.total_amount, 2) AS total_amount FROM orders WHERE orders.status = 'completed' LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #32",
+  "sql": "SELECT outlets.name AS outlet, ROUND(SUM(orders.total_amount - orders.tax_amount), 2) AS revenue FROM orders JOIN outlets ON orders.outlet_id = outlets.id WHERE orders.status = 'completed' GROUP BY outlets.id, outlets.name ORDER BY revenue DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #33",
+  "sql": "SELECT p.name AS product, MAX(oi.order_date) AS last_sold_date FROM products AS p LEFT JOIN order_items AS oi ON oi.product_id = p.id LEFT JOIN orders AS o ON o.id = oi.order_id AND o.status = 'completed' WHERE p.is_active = TRUE GROUP BY p.id, p.name HAVING MAX(oi.order_date) IS NULL OR MAX(oi.order_date) < CAST('2026-10-12' AS DATE) ORDER BY last_sold_date ASC NULLS FIRST LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #34",
+  "sql": "SELECT p.name AS product, ROUND(SUM(oi.line_total), 2) AS product_revenue FROM order_items AS oi JOIN orders AS o ON oi.order_id = o.id JOIN products AS p ON oi.product_id = p.id WHERE o.status = 'completed' GROUP BY p.id, p.name ORDER BY product_revenue DESC LIMIT 10",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #35",
+  "sql": "SELECT p.name AS product, SUM(oi.quantity) AS units_sold FROM order_items AS oi JOIN orders AS o ON oi.order_id = o.id JOIN products AS p ON oi.product_id = p.id WHERE o.status = 'completed' GROUP BY p.id, p.name ORDER BY units_sold DESC LIMIT 10",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #36",
+  "sql": "SELECT p.name AS product, o.name AS outlet, i.quantity_on_hand AS stock, i.reorder_level AS reorder_level FROM inventory_levels AS i JOIN products AS p ON i.product_id = p.id JOIN outlets AS o ON i.outlet_id = o.id WHERE p.is_active = TRUE AND i.quantity_on_hand <= i.reorder_level AND i.quantity_on_hand > 0 ORDER BY o.name, p.name LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #37",
+  "sql": "SELECT products.name AS product, ROUND(SUM(order_items.line_total), 2) AS revenue FROM order_items JOIN orders ON order_items.order_id = orders.id JOIN products ON order_items.product_id = products.id WHERE orders.status = 'completed' GROUP BY products.name ORDER BY revenue DESC LIMIT 10",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #38",
+  "sql": "SELECT s.name AS supplier, COALESCE(ROUND(SUM(p.total_amount), 2), 0.00) AS purchases FROM suppliers AS s LEFT JOIN purchase_orders AS p ON s.id = p.supplier_id AND p.status = 'received' GROUP BY s.id, s.name ORDER BY purchases DESC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #39",
+  "sql": "SELECT s.name AS supplier, ROUND(COALESCE(SUM(po.total_amount), 0), 2) AS purchases FROM suppliers AS s LEFT JOIN purchase_orders AS po ON s.id = po.supplier_id AND po.status = 'received' GROUP BY s.id, s.name ORDER BY purchases DESC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #40",
+  "sql": "SELECT s.name AS supplier, ROUND(SUM(p.total_amount), 2) AS total_purchased FROM suppliers AS s JOIN purchase_orders AS p ON s.id = p.supplier_id GROUP BY s.name ORDER BY total_purchased DESC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 1,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #41",
+  "sql": "WITH rev AS (SELECT o.id AS outlet_id, o.name AS outlet, ROUND(COALESCE(SUM(ord.total_amount - ord.tax_amount), 0), 2) AS revenue FROM outlets AS o LEFT JOIN orders AS ord ON o.id = ord.outlet_id AND ord.status = 'completed' AND ord.order_date BETWEEN CAST('2026-10-01' AS DATE) AND CAST('2026-10-31' AS DATE) GROUP BY o.id, o.name), exp AS (SELECT o.id AS outlet_id, ROUND(COALESCE(SUM(e.amount), 0), 2) AS expenses FROM outlets AS o LEFT JOIN expenses AS e ON o.id = e.outlet_id AND e.expense_date BETWEEN CAST('2026-10-01' AS DATE) AND CAST('2026-10-31' AS DATE) GROUP BY o.id) SELECT rev.outlet, rev.revenue, exp.expenses FROM rev JOIN exp ON rev.outlet_id = exp.outlet_id LIMIT 1001",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #42",
+  "sql": "WITH rev AS (SELECT o.id AS outlet_id, o.name AS outlet, ROUND(COALESCE(SUM(ord.total_amount - ord.tax_amount), 0), 2) AS revenue FROM outlets AS o LEFT JOIN orders AS ord ON ord.outlet_id = o.id AND ord.status = 'completed' AND ord.order_date >= CAST('2026-11-01' AS DATE) AND ord.order_date <= CAST('2026-11-11' AS DATE) GROUP BY o.id, o.name), vis AS (SELECT o.id AS outlet_id, COUNT(cv.id) AS visits FROM outlets AS o LEFT JOIN customer_visits AS cv ON cv.outlet_id = o.id AND cv.visit_date >= CAST('2026-11-01' AS DATE) AND cv.visit_date <= CAST('2026-11-11' AS DATE) GROUP BY o.id) SELECT rev.outlet, rev.revenue, vis.visits FROM rev JOIN vis ON rev.outlet_id = vis.outlet_id ORDER BY rev.revenue DESC LIMIT 1001",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ },
+ {
+  "name": "real model, earlier phases #43",
+  "sql": "WITH rev AS (SELECT o.outlet_id, ROUND(SUM(o.total_amount - o.tax_amount), 2) AS revenue FROM orders AS o WHERE o.status = 'completed' AND o.order_date BETWEEN CAST('2026-11-01' AS DATE) AND CAST('2026-11-11' AS DATE) GROUP BY o.outlet_id), vis AS (SELECT cv.outlet_id, COUNT(DISTINCT cv.customer_id) AS visiting_customers FROM customer_visits AS cv WHERE cv.visit_date BETWEEN CAST('2026-11-01' AS DATE) AND CAST('2026-11-11' AS DATE) GROUP BY cv.outlet_id) SELECT ot.name AS outlet, rev.revenue, COALESCE(vis.visiting_customers, 0) AS visiting_customers FROM rev JOIN outlets AS ot ON ot.id = rev.outlet_id LEFT JOIN vis ON vis.outlet_id = rev.outlet_id ORDER BY rev.revenue DESC LIMIT 1",
+  "verdict": "passed",
+  "judged": 3,
+  "uncertain": []
+ }
+]

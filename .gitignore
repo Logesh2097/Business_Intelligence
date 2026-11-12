@@ -1,0 +1,28 @@
+# secrets and local settings
+.env
+*.local
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# node
+node_modules/
+dist/
+
+# built web app copied into the API image
+backend/app/static/
+
+# local data
+data/
+.pgdata/
+
+# editors and OS
+.vscode/
+.idea/
+.DS_Store
