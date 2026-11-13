@@ -119,3 +119,48 @@ docker-compose.yml  the three stores (and, optionally, the API) for local develo
 ## Settings and secrets
 
 Every setting is a `BI_*` environment variable, listed with an explanation in [.env.example](.env.example). No password, key or token is written in the code or in the Compose file. Outside development the app refuses to start with a missing or placeholder secret (see [docs/design/architecture.md](docs/design/architecture.md) §7).
+
+## Troubleshooting
+
+| Issue | Cause / Solution |
+|---|---|
+| **Database connection errors / services down** | Ensure Docker is running and execute `make up` to start PostgreSQL (`:5610`), MongoDB (`:27027`), and Qdrant (`:6343`). Check service readiness at `http://localhost:8110/readyz`. |
+| **Missing `.env` configuration** | Run `make setup` to automatically copy `.env.example` to `.env`. Ensure required variables (such as `BI_OPENAI_API_KEY` when querying LLM features) are configured. |
+| **Port conflicts** | If ports 8110 (API), 5290 (Web), 5610 (Postgres), 27027 (Mongo), or 6343 (Qdrant) are already in use, stop conflicting services or adjust the port mappings in `docker-compose.yml` and `.env`. |
+| **LLM query returns `503`** | Ensure `BI_OPENAI_API_KEY` and `BI_LLM_MODEL` are set in `.env` and restart the backend. Without an API key, analytics queries return `503`. |
+
+## Troubleshooting
+
+| Issue | Cause / Solution |
+|---|---|
+| **Database connection errors / services down** | Ensure Docker is running and execute `make up` to start PostgreSQL (`:5610`), MongoDB (`:27027`), and Qdrant (`:6343`). Check service readiness at `http://localhost:8110/readyz`. |
+| **Missing `.env` configuration** | Run `make setup` to automatically copy `.env.example` to `.env`. Ensure required variables (such as `BI_OPENAI_API_KEY` when querying LLM features) are configured. |
+| **Port conflicts** | If ports 8110 (API), 5290 (Web), 5610 (Postgres), 27027 (Mongo), or 6343 (Qdrant) are already in use, stop conflicting services or adjust the port mappings in `docker-compose.yml` and `.env`. |
+| **LLM query returns `503`** | Ensure `BI_OPENAI_API_KEY` and `BI_LLM_MODEL` are set in `.env` and restart the backend. Without an API key, analytics queries return `503`. |
+
+## Troubleshooting
+
+| Issue | Cause / Solution |
+|---|---|
+| **Database connection errors / services down** | Ensure Docker is running and execute `make up` to start PostgreSQL (`:5610`), MongoDB (`:27027`), and Qdrant (`:6343`). Check service readiness at `http://localhost:8110/readyz`. |
+| **Missing `.env` configuration** | Run `make setup` to automatically copy `.env.example` to `.env`. Ensure required variables (such as `BI_OPENAI_API_KEY` when querying LLM features) are configured. |
+| **Port conflicts** | If ports 8110 (API), 5290 (Web), 5610 (Postgres), 27027 (Mongo), or 6343 (Qdrant) are already in use, stop conflicting services or adjust the port mappings in `docker-compose.yml` and `.env`. |
+| **LLM query returns `503`** | Ensure `BI_OPENAI_API_KEY` and `BI_LLM_MODEL` are set in `.env` and restart the backend. Without an API key, analytics queries return `503`. |
+
+## Troubleshooting
+
+| Issue | Cause / Solution |
+|---|---|
+| **Database connection errors / services down** | Ensure Docker is running and execute `make up` to start PostgreSQL (`:5610`), MongoDB (`:27027`), and Qdrant (`:6343`). Check service readiness at `http://localhost:8110/readyz`. |
+| **Missing `.env` configuration** | Run `make setup` to automatically copy `.env.example` to `.env`. Ensure required variables (such as `BI_OPENAI_API_KEY` when querying LLM features) are configured. |
+| **Port conflicts** | If ports 8110 (API), 5290 (Web), 5610 (Postgres), 27027 (Mongo), or 6343 (Qdrant) are already in use, stop conflicting services or adjust the port mappings in `docker-compose.yml` and `.env`. |
+| **LLM query returns `503`** | Ensure `BI_OPENAI_API_KEY` and `BI_LLM_MODEL` are set in `.env` and restart the backend. Without an API key, analytics queries return `503`. |
+
+## Troubleshooting
+
+| Issue | Cause / Solution |
+|---|---|
+| **Database connection errors / services down** | Ensure Docker is running and execute `make up` to start PostgreSQL (`:5610`), MongoDB (`:27027`), and Qdrant (`:6343`). Check service readiness at `http://localhost:8110/readyz`. |
+| **Missing `.env` configuration** | Run `make setup` to automatically copy `.env.example` to `.env`. Ensure required variables (such as `BI_OPENAI_API_KEY` when querying LLM features) are configured. |
+| **Port conflicts** | If ports 8110 (API), 5290 (Web), 5610 (Postgres), 27027 (Mongo), or 6343 (Qdrant) are already in use, stop conflicting services or adjust the port mappings in `docker-compose.yml` and `.env`. |
+| **LLM query returns `503`** | Ensure `BI_OPENAI_API_KEY` and `BI_LLM_MODEL` are set in `.env` and restart the backend. Without an API key, analytics queries return `503`. |
